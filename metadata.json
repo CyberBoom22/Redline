@@ -1,0 +1,6 @@
+{
+  "name": "Redline",
+  "description": "The honest build planner for forced-induction platforms, featuring BMW B58 and Infiniti VQ/VR platforms, parts marketplace, risk-and-cost modeling, and dyno tracking.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
