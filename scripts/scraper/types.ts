@@ -118,3 +118,50 @@ export interface RunSummary {
   errors: number;
   stoppedReason: 'budget' | 'queue-empty' | 'blocked' | 'error';
 }
+
+/** One field that moved between two scans, for the change report. */
+export interface FieldChange {
+  field: string;
+  from: unknown;
+  to: unknown;
+}
+
+export interface ChangeRecord {
+  id: string;
+  vendorId: VendorId;
+  vendorName: string;
+  name: string;
+  url: string;
+  sku: string | null;
+  price: number | null;
+  engineIds: EngineId[];
+  /** Populated for 'changed' only. */
+  fields?: FieldChange[];
+}
+
+/**
+ * The per-run changelog. This is the payload behind "what was scanned, added
+ * and changed" — written once per run, storage-agnostic, so it can be served
+ * from a file, pushed to a database, or emailed without reshaping.
+ */
+export interface RunReport {
+  runId: string;
+  date: string;
+  startedAt: string;
+  finishedAt: string;
+  durationMs: number;
+  requests: number;
+  requestLimit: number;
+  /** Pages actually fetched with a 200 body. */
+  scanned: number;
+  /** Pages that came back 304 — checked, but unchanged. */
+  unchanged: number;
+  added: ChangeRecord[];
+  changed: ChangeRecord[];
+  removed: ChangeRecord[];
+  errors: { url: string; reason: string }[];
+  byVendor: Record<string, { requests: number; scanned: number; added: number; changed: number; removed: number }>;
+  stoppedReason: RunSummary['stoppedReason'];
+  /** Pages still waiting, so the report says what tomorrow will cover. */
+  queuedForNextRun: number;
+}

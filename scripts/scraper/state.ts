@@ -1,7 +1,7 @@
 import { createHash } from 'node:crypto';
 import { promises as fs } from 'node:fs';
 import path from 'node:path';
-import { CatalogPart, QueueEntry, RunSummary, ScrapeState, VendorId } from './types';
+import { CatalogPart, ChangeRecord, FieldChange, QueueEntry, RunSummary, ScrapeState, VendorId } from './types';
 
 /**
  * Everything the scraper remembers between runs.
@@ -155,7 +155,7 @@ export class Store {
    * Merge a freshly scraped product. Returns 'new', 'changed', or 'unchanged'
    * based on a content hash, so price history only grows on real movement.
    */
-  upsert(part: CatalogPart): 'new' | 'changed' | 'unchanged' {
+  upsert(part: CatalogPart): UpsertResult {
     const now = new Date().toISOString();
     const existing = this.parts.get(part.id);
 
@@ -167,10 +167,11 @@ export class Store {
         lastChangedAt: now,
         priceHistory: part.price !== null ? [{ date: now.slice(0, 10), price: part.price }] : [],
       });
-      return 'new';
+      return { status: 'new', fields: [] };
     }
 
-    const changed = contentHash(existing) !== contentHash(part);
+    const fields = diffFields(existing, part);
+    const changed = fields.length > 0;
     const priceMoved = part.price !== null && part.price !== existing.price;
 
     const merged: CatalogPart = {
@@ -185,7 +186,24 @@ export class Store {
     };
 
     this.parts.set(part.id, merged);
-    return changed ? 'changed' : 'unchanged';
+    return { status: changed ? 'changed' : 'unchanged', fields };
+  }
+
+  /** Parts whose page has 404'd since the last report was written. */
+  removedSince(iso: string): CatalogPart[] {
+    const gone = new Set(
+      this.state.queue.filter((e) => e.goneAt && e.goneAt > iso).map((e) => e.url),
+    );
+    return this.allParts.filter((p) => gone.has(p.url));
+  }
+
+  /** Total pages still waiting to be fetched, across every vendor. */
+  totalQueued(now = new Date()): number {
+    return (['ecs', 'fcp', 'z1'] as VendorId[]).reduce(
+      (sum, vendorId) =>
+        sum + this.due(vendorId, 'listing', now).length + this.due(vendorId, 'product', now).length,
+      0,
+    );
   }
 
   /** Refresh lastSeenAt without a re-parse, for 304 responses. */
@@ -209,20 +227,63 @@ export class Store {
   }
 }
 
-/** Fields that constitute a meaningful change; timestamps are excluded. */
+export interface UpsertResult {
+  status: 'new' | 'changed' | 'unchanged';
+  fields: FieldChange[];
+}
+
+/** Fields worth reporting on; timestamps and bookkeeping are excluded. */
+const TRACKED_FIELDS = [
+  'name',
+  'brand',
+  'sku',
+  'price',
+  'availability',
+  'description',
+  'imageUrl',
+  'category',
+  'engineIds',
+] as const;
+
+/**
+ * Field-level diff between the stored record and a freshly scraped one. This
+ * is what makes the daily report specific — "price 329.99 -> 299.99" rather
+ * than just "1 product changed".
+ */
+function diffFields(before: CatalogPart, after: CatalogPart): FieldChange[] {
+  const changes: FieldChange[] = [];
+  for (const field of TRACKED_FIELDS) {
+    const from = before[field];
+    const to = after[field];
+    const same = Array.isArray(from) && Array.isArray(to)
+      ? JSON.stringify([...from].sort()) === JSON.stringify([...to].sort())
+      : from === to;
+    if (!same) changes.push({ field, from, to });
+  }
+  return changes;
+}
+
+/** Stable identity hash, used to spot changes without holding a full copy. */
 function contentHash(part: CatalogPart): string {
-  const subject = {
+  const subject = Object.fromEntries(
+    TRACKED_FIELDS.map((f) => [f, Array.isArray(part[f]) ? [...(part[f] as unknown[])].sort() : part[f]]),
+  );
+  return createHash('sha1').update(JSON.stringify(subject)).digest('hex');
+}
+
+/** Shrink a part down to what the change report needs to show. */
+export function toChangeRecord(part: CatalogPart, fields?: FieldChange[]): ChangeRecord {
+  return {
+    id: part.id,
+    vendorId: part.vendorId,
+    vendorName: part.vendorName,
     name: part.name,
-    brand: part.brand,
+    url: part.url,
     sku: part.sku,
     price: part.price,
-    availability: part.availability,
-    description: part.description,
-    imageUrl: part.imageUrl,
-    category: part.category,
-    engineIds: [...part.engineIds].sort(),
+    engineIds: part.engineIds,
+    ...(fields && fields.length > 0 ? { fields } : {}),
   };
-  return createHash('sha1').update(JSON.stringify(subject)).digest('hex');
 }
 
 async function readJson<T>(file: string, fallback: T): Promise<T> {

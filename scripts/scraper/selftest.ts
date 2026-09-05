@@ -261,9 +261,16 @@ check('state: upsert distinguishes new, changed and unchanged', async () => {
     extractedVia: 'json-ld',
   };
 
-  assert.equal(store.upsert(base), 'new');
-  assert.equal(store.upsert({ ...base }), 'unchanged', 'identical data must not count as a change');
-  assert.equal(store.upsert({ ...base, price: 299.99 }), 'changed');
+  assert.equal(store.upsert(base).status, 'new');
+  assert.equal(store.upsert({ ...base }).status, 'unchanged', 'identical data must not count as a change');
+
+  const priceDrop = store.upsert({ ...base, price: 299.99 });
+  assert.equal(priceDrop.status, 'changed');
+  assert.deepEqual(
+    priceDrop.fields,
+    [{ field: 'price', from: 329.99, to: 299.99 }],
+    'the report needs to know which field moved, not just that one did',
+  );
 
   const stored = store.allParts.find((p) => p.id === base.id);
   assert.equal(stored?.price, 299.99);

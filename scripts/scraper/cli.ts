@@ -4,6 +4,7 @@ import { DATA_DIR, enabledVendors } from './config';
 import { emit } from './emit';
 import { extractLinks } from './extract';
 import { BlockedError, PoliteClient } from './http';
+import { formatReport, readIndex, readReport } from './report';
 import { run } from './run';
 import { Store } from './state';
 
@@ -27,6 +28,9 @@ async function main() {
     case 'verify':
       await verify();
       break;
+    case 'report':
+      await report();
+      break;
     case 'emit':
       await emit(flag('out'));
       break;
@@ -38,6 +42,7 @@ async function main() {
           '  run [--limit=N] [--only=ecs|fcp|z1]   Fetch what is due, within the daily budget',
           '  plan [--only=…]                       Show what the next run would fetch (no requests)',
           '  status                                Budget, coverage, and what is queued for tomorrow',
+          '  report [--run=ID] [--json] [--list]    What the last scan added, changed and removed',
           '  verify                                Check seeds and selectors against the live sites',
           '  emit [--out=path]                     Regenerate src/data/scrapedCatalog.ts',
         ].join('\n'),
@@ -145,6 +150,37 @@ async function verify() {
 
   await budget.save();
   console.log(`\nVerification spent ${budget.used} of today's ${DAILY_REQUEST_LIMIT} requests.`);
+}
+
+/** The daily changelog: what was scanned, added, changed and removed. */
+async function report() {
+  if (rest.includes('--list')) {
+    const index = await readIndex();
+    if (index.length === 0) {
+      console.log('No scans recorded yet.');
+      return;
+    }
+    console.log('run id              date        req  scanned  added  changed  removed  errors');
+    for (const entry of index) {
+      console.log(
+        `${entry.runId.padEnd(18)}  ${entry.date}  ${String(entry.requests).padStart(3)}  ` +
+          `${String(entry.scanned).padStart(7)}  ${String(entry.added).padStart(5)}  ` +
+          `${String(entry.changed).padStart(7)}  ${String(entry.removed).padStart(7)}  ` +
+          `${String(entry.errors).padStart(6)}`,
+      );
+    }
+    return;
+  }
+
+  const found = await readReport(flag('run'));
+  if (!found) {
+    console.log('No scan report found yet. Run `npm run scrape` first.');
+    process.exitCode = 1;
+    return;
+  }
+
+  // --json is the machine-readable form, for piping into a database or an email.
+  console.log(rest.includes('--json') ? JSON.stringify(found, null, 2) : formatReport(found));
 }
 
 main().catch((err) => {
