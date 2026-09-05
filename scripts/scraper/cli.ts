@@ -5,6 +5,7 @@ import { emit } from './emit';
 import { extractLinks } from './extract';
 import { BlockedError, PoliteClient } from './http';
 import { formatReport, readIndex, readReport } from './report';
+import { push } from './push';
 import { run } from './run';
 import { Store } from './state';
 
@@ -31,6 +32,9 @@ async function main() {
     case 'report':
       await report();
       break;
+    case 'push':
+      await push({ url: flag('url'), secret: flag('secret'), runId: flag('run'), reportOnly: rest.includes('--report-only') });
+      break;
     case 'emit':
       await emit(flag('out'));
       break;
@@ -43,6 +47,7 @@ async function main() {
           '  plan [--only=…]                       Show what the next run would fetch (no requests)',
           '  status                                Budget, coverage, and what is queued for tomorrow',
           '  report [--run=ID] [--json] [--list]    What the last scan added, changed and removed',
+          '  push [--url=] [--secret=] [--run=ID]   Send a scan report to the dashboard database',
           '  verify                                Check seeds and selectors against the live sites',
           '  emit [--out=path]                     Regenerate src/data/scrapedCatalog.ts',
         ].join('\n'),

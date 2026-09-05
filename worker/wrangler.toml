@@ -1,0 +1,16 @@
+name = "redline-dashboard"
+main = "src/index.ts"
+compatibility_date = "2026-01-01"
+
+# The dashboard is served to a browser behind Cloudflare Access; the daily scan
+# posts to /api/ingest with a bearer secret.
+[observability]
+enabled = true
+
+[[d1_databases]]
+binding = "DB"
+database_name = "redline-catalog"
+database_id = "8d625631-ff7d-4ddf-bf16-f3875a4f8e8c"
+
+# Secrets are set out of band, never committed:
+#   npx wrangler secret put INGEST_SECRET

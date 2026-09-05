@@ -16,7 +16,8 @@
     "scrape:emit": "tsx scripts/scraper/cli.ts emit",
     "scrape:test": "tsx scripts/scraper/selftest.ts",
     "scrape:report": "tsx scripts/scraper/cli.ts report",
-    "scrape:e2e": "tsx scripts/scraper/e2e.ts"
+    "scrape:e2e": "tsx scripts/scraper/e2e.ts",
+    "scrape:push": "tsx scripts/scraper/cli.ts push"
   },
   "dependencies": {
     "@google/genai": "^2.4.0",

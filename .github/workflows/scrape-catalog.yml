@@ -90,6 +90,15 @@ jobs:
       - name: Report status
         run: bun run scrape:status
 
+      # Ships the report to the D1-backed dashboard. Skipped automatically when
+      # the variable is not configured, so the scrape still succeeds without it.
+      - name: Push report to dashboard
+        if: vars.REDLINE_DASHBOARD_URL != ''
+        env:
+          REDLINE_DASHBOARD_URL: ${{ vars.REDLINE_DASHBOARD_URL }}
+          REDLINE_INGEST_SECRET: ${{ secrets.REDLINE_INGEST_SECRET }}
+        run: bun run scrape:push
+
       - name: Commit catalog changes
         run: |
           git config user.name  "github-actions[bot]"

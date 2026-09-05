@@ -24,6 +24,7 @@ npm run scrape:verify     # check seed URLs and selectors against the live sites
 npm run scrape:emit       # regenerate src/data/scrapedCatalog.ts from stored data
 npm run scrape:test       # offline self-test of the parsing and budget logic
 npm run scrape:e2e        # full run loop against a local fixture server
+npm run scrape:push       # send the latest report to the dashboard database
 ```
 
 `npm run scrape -- run --only=z1 --limit=10` restricts a run to one vendor and
@@ -120,6 +121,17 @@ The report shape (`RunReport` in `types.ts`) is deliberately storage-agnostic �
 the same object is what gets printed in CI logs, committed to the repo, and
 pushed to a database or mailed out once a backend is wired up. Nothing about it
 assumes where it ends up.
+
+## Dashboard
+
+`npm run scrape:push` posts the latest report — and the catalog snapshot — to
+the Cloudflare Worker in `worker/`, which stores it in D1 and serves a private
+dashboard behind Cloudflare Access. The daily workflow runs this automatically
+once `REDLINE_DASHBOARD_URL` and `REDLINE_INGEST_SECRET` are configured, and
+skips it silently when they are not. Setup lives in `worker/README.md`.
+
+CI holds only a single-purpose ingest secret, not a Cloudflare API token — the
+Worker owns the database, and the scraper only speaks HTTP to it.
 
 ## Being a good citizen
 
