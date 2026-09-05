@@ -1,0 +1,76 @@
+name: Scrape parts catalog
+
+# One run per day. The 100-request budget is enforced in the scraper itself and
+# tracked in data/catalog/budget.json, which is committed back after each run —
+# so a manual run and the scheduled run share the same daily allowance rather
+# than each getting their own.
+on:
+  schedule:
+    - cron: '17 9 * * *' # 09:17 UTC daily, off the hour to avoid the stampede
+  workflow_dispatch:
+    inputs:
+      limit:
+        description: 'Cap requests for this run (defaults to whatever the day has left)'
+        required: false
+        type: string
+      only:
+        description: 'Restrict to one vendor: ecs, fcp or z1'
+        required: false
+        type: string
+
+# Never let two runs spend the budget concurrently.
+concurrency:
+  group: scrape-catalog
+  cancel-in-progress: false
+
+permissions:
+  contents: write
+
+jobs:
+  scrape:
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: latest
+
+      - name: Install dependencies
+        run: bun install --frozen-lockfile
+
+      - name: Verify scraper logic
+        run: bun run scrape:test
+
+      - name: Scrape
+        run: |
+          ARGS=""
+          if [ -n "${{ inputs.limit }}" ]; then ARGS="$ARGS --limit=${{ inputs.limit }}"; fi
+          if [ -n "${{ inputs.only }}" ]; then ARGS="$ARGS --only=${{ inputs.only }}"; fi
+          bun run scrape -- run $ARGS
+
+      - name: Regenerate the catalog module
+        run: bun run scrape:emit
+
+      - name: Report status
+        run: bun run scrape:status
+
+      - name: Commit catalog changes
+        run: |
+          git config user.name  "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add data/catalog src/data/scrapedCatalog.ts
+          if git diff --staged --quiet; then
+            echo "No catalog changes today."
+            exit 0
+          fi
+          git commit -m "chore(catalog): daily scrape $(date -u +%Y-%m-%d)"
+          # The scrape is slow; another push may have landed while it ran.
+          for attempt in 1 2 3 4; do
+            if git push origin HEAD:${{ github.ref_name }}; then exit 0; fi
+            git pull --rebase origin ${{ github.ref_name }} || true
+            sleep $((2 ** attempt))
+          done
+          echo "Could not push catalog changes" >&2
+          exit 1
