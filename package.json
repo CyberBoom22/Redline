@@ -8,12 +8,19 @@
     "build": "vite build",
     "preview": "vite preview",
     "clean": "rm -rf dist server.js",
-    "lint": "tsc --noEmit"
+    "lint": "tsc --noEmit",
+    "scrape": "tsx scripts/scraper/cli.ts",
+    "scrape:plan": "tsx scripts/scraper/cli.ts plan",
+    "scrape:status": "tsx scripts/scraper/cli.ts status",
+    "scrape:verify": "tsx scripts/scraper/cli.ts verify",
+    "scrape:emit": "tsx scripts/scraper/cli.ts emit",
+    "scrape:test": "tsx scripts/scraper/selftest.ts"
   },
   "dependencies": {
     "@google/genai": "^2.4.0",
     "@tailwindcss/vite": "^4.1.14",
     "@vitejs/plugin-react": "^5.0.4",
+    "cheerio": "^1.2.0",
     "dotenv": "^17.2.3",
     "express": "^4.21.2",
     "lucide-react": "^0.546.0",
