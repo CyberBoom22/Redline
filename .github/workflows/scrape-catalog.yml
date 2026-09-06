@@ -74,6 +74,13 @@ jobs:
           bun run scrape:test
           bun run scrape:e2e
 
+      - name: Verify dashboard security
+        working-directory: worker
+        run: |
+          npm install
+          npx wrangler d1 execute redline-catalog --local --file schema.sql
+          npm run test:security
+
       - name: Scrape
         run: |
           ARGS=""

@@ -11,7 +11,7 @@ import { promises as fs } from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
 import { Budget, BudgetExhaustedError, DAILY_REQUEST_LIMIT } from './budget';
-import { extractLinks, extractProduct, parsePrice } from './extract';
+import { extractLinks, extractNextPage, extractProduct, parsePrice } from './extract';
 import { matchCategory, matchEngines } from './fitment';
 import { isAllowed, parseRobots } from './robots';
 import { REFRESH_INTERVAL_DAYS, Store } from './state';
@@ -130,6 +130,22 @@ check('extract: product links are absolutised, filtered and de-duplicated', () =
     'https://www.fcpeuro.com/products/charge-pipe',
     'https://www.fcpeuro.com/products/downpipe',
   ]);
+});
+
+check('security: non-http(s) links are never queued', () => {
+  const html = `<html><body>
+    <a class="product-name" href="javascript:alert(1)">xss</a>
+    <a class="product-name" href="data:text/html,<script>alert(1)</script>">data</a>
+    <a class="product-name" href="file:///etc/passwd">file</a>
+    <a class="product-name" href="https://www.fcpeuro.com/products/ok">fine</a>
+  </body></html>`;
+  const links = extractLinks(html, 'https://www.fcpeuro.com/x/', 'a.product-name', '.*');
+  assert.deepEqual(links, ['https://www.fcpeuro.com/products/ok']);
+});
+
+check('security: a next-page link with a non-http scheme is dropped', () => {
+  const html = '<html><body><a rel="next" href="javascript:alert(1)">next</a></body></html>';
+  assert.equal(extractNextPage(html, 'https://www.fcpeuro.com/x/', 'a[rel=\"next\"]'), null);
 });
 
 check('extract: price parsing strips symbols and separators', () => {

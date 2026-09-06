@@ -35,6 +35,17 @@ const productPage = (name: string, sku: string, value: number, fitment: string) 
            "availability":"https://schema.org/InStock"}}
 </script></head><body></body></html>`;
 
+// Any request to this server means the scraper followed a link off the
+// vendor's origin, which it must never do.
+let offOriginHits = 0;
+const offOrigin = http.createServer((_req, res) => {
+  offOriginHits += 1;
+  res.writeHead(200, { 'content-type': 'text/html' });
+  res.end('<html><body>should never be fetched</body></html>');
+});
+await new Promise<void>((resolve) => offOrigin.listen(0, '127.0.0.1', resolve));
+const offOriginPort = (offOrigin.address() as { port: number }).port;
+
 const server = http.createServer((req, res) => {
   const url = req.url ?? '/';
 
@@ -50,8 +61,11 @@ const server = http.createServer((req, res) => {
       <a class="product-name" href="/product/charge-pipe">Charge pipe</a>
       <a class="product-name" href="/product/charge-pipe#reviews">dupe</a>
       ${secondProductExists ? '<a class="product-name" href="/product/downpipe">Downpipe</a>' : ''}
-      <a class="product-name" href="/checkout/cart">disallowed</a>
+      <a class="product-name" href="/checkout/cart">disallowed by robots</a>
       <a class="product-name" href="/blog/guide">not a product</a>
+      <a class="product-name" href="http://127.0.0.1:${offOriginPort}/product/evil">off-origin product</a>
+      <a class="product-name" href="javascript:alert(1)">javascript url</a>
+      <a rel="next" href="http://127.0.0.1:${offOriginPort}/catalog/evil">off-origin next page</a>
     </body></html>`);
     return;
   }
@@ -121,6 +135,11 @@ try {
     assert.equal(first.requests, 4, `expected 4 requests, got ${first.requests}`);
   });
 
+  expect('run 1: only same-origin products were scraped', () => {
+    assert.equal(offOriginHits, 0, 'the scraper followed a link off the vendor origin');
+    assert.equal(first.added.length, 2);
+  });
+
   expect('run 1: fitment was derived from page text', () => {
     const chargePipe = first.added.find((a) => a.sku === 'FTP-CP-01');
     const downpipe = first.added.find((a) => a.sku === 'FTP-DP-01');
@@ -137,6 +156,12 @@ try {
     assert.equal(second?.requests, before + 1, 'only robots.txt should be re-fetched');
     assert.equal(second?.scanned, 0);
     assert.equal(second?.added.length, 0);
+  });
+
+  expect('run 2: a queued off-origin listing link is still never fetched (SSRF guard)', () => {
+    // An off-origin "next page" link is discovered on run 1 and would only be
+    // fetched on a later run, so this is the checkpoint that actually catches it.
+    assert.equal(offOriginHits, 0, 'the scraper fetched a URL off the vendor origin');
   });
 
   // ── run 3: a price moves and a product disappears ─────────────────────────
@@ -163,6 +188,10 @@ try {
     assert.equal(third?.removed[0].sku, 'FTP-DP-01');
   });
 
+  expect('run 3: still no off-origin request across the whole session (SSRF guard)', () => {
+    assert.equal(offOriginHits, 0, 'the scraper fetched a URL off the vendor origin');
+  });
+
   expect('run 3: the report renders without throwing', () => {
     const text = formatReport(third!);
     assert.match(text, /Changed \(1\)/);
@@ -174,5 +203,6 @@ try {
   if (failures > 0) process.exitCode = 1;
 } finally {
   server.close();
+  offOrigin.close();
   await fs.rm(dataDir, { recursive: true, force: true });
 }

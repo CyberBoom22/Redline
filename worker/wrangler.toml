@@ -1,16 +1,30 @@
 name = "redline-dashboard"
 main = "src/index.ts"
-compatibility_date = "2026-01-01"
+compatibility_date = "2025-07-18"
 
-# The dashboard is served to a browser behind Cloudflare Access; the daily scan
-# posts to /api/ingest with a bearer secret.
 [observability]
 enabled = true
+
+# The dashboard lives on its own subdomain. `custom_domain = true` makes
+# wrangler create and manage the DNS record, so no manual CNAME is needed —
+# the zone xavierboone.us just has to be in this Cloudflare account.
+[[routes]]
+pattern = "redline.xavierboone.us"
+custom_domain = true
 
 [[d1_databases]]
 binding = "DB"
 database_name = "redline-catalog"
 database_id = "8d625631-ff7d-4ddf-bf16-f3875a4f8e8c"
 
-# Secrets are set out of band, never committed:
+[vars]
+# Both are required for the Worker to serve any read. Until they are set, reads
+# are refused with 503 — a deploy that lands before the Access policy exists is
+# locked rather than public.
+#   ACCESS_TEAM_DOMAIN: "<your-team>.cloudflareaccess.com"
+#   ACCESS_AUD:         the Application Audience tag from the Access app
+ACCESS_TEAM_DOMAIN = ""
+ACCESS_AUD = ""
+
+# Secrets, set out of band and never committed:
 #   npx wrangler secret put INGEST_SECRET

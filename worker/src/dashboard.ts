@@ -2,8 +2,13 @@
  * The dashboard page. Vanilla HTML/CSS/JS served inline by the Worker — no
  * build step and no CDN, so the page loads even when everything else is down.
  * Styled to match the Redline app: slate-950 ground, red accents, mono labels.
+ *
+ * The page renders scraped, third-party-controlled strings. Every value goes
+ * through `esc()` before it reaches markup, and every URL goes through
+ * `safeHref()` so a `javascript:` URL scraped from a vendor page can never
+ * become a working link. The inline script carries a per-request CSP nonce.
  */
-export function dashboardHtml(): string {
+export function dashboardHtml(nonce: string): string {
   return `<!doctype html>
 <html lang="en"><head>
 <meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
@@ -134,11 +139,25 @@ export function dashboardHtml(): string {
   </section>
 </main>
 
-<script>
+<script nonce="${nonce}">
 const $ = (id) => document.getElementById(id);
 const esc = (s) => String(s ?? '').replace(/[&<>"']/g, (c) =>
   ({ '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;' })[c]);
 const money = (n) => (n === null || n === undefined) ? '—' : '$' + Number(n).toFixed(2);
+// Only http(s) may become an href. Scraped URLs are third-party input, so a
+// javascript: or data: value must never survive into the DOM as a link.
+const safeHref = (u) => {
+  try {
+    const p = new URL(String(u), location.origin);
+    return (p.protocol === 'http:' || p.protocol === 'https:') ? p.href : null;
+  } catch { return null; }
+};
+const link = (u, label) => {
+  const href = safeHref(u);
+  return href
+    ? '<a href="' + esc(href) + '" target="_blank" rel="noopener noreferrer">' + esc(label) + '</a>'
+    : esc(label);
+};
 const get = (path) => fetch(path).then((r) => r.json());
 
 let currentRun = null;
@@ -207,7 +226,7 @@ async function showRun(runId) {
         <span class="from">\${esc(fmt(f.from))}</span> → <span class="to">\${esc(fmt(f.to))}</span></div>\`).join('');
     return \`<div class="change">
       <div class="top"><span class="pill \${pill}">\${mark}</span>
-        <span class="name">\${c.url ? \`<a href="\${esc(c.url)}" target="_blank" rel="noopener noreferrer">\${esc(c.name)}</a>\` : esc(c.name)}</span>
+        <span class="name">\${link(c.url, c.name)}</span>
         <span class="meta">\${esc(c.vendor_name ?? c.vendor_id)}\${c.sku ? ' · ' + esc(c.sku) : ''} · \${money(c.price)}</span></div>
       \${diffs ? '<div class="diff">' + diffs + '</div>' : ''}
     </div>\`;
@@ -241,7 +260,7 @@ async function loadParts() {
     ? '<thead><tr><th>Part</th><th>Vendor</th><th>SKU</th><th>Fits</th>' +
       '<th class="num">Price</th><th>Stock</th><th>Changed</th></tr></thead><tbody>' +
       parts.map((p) => \`<tr>
-        <td>\${p.url ? \`<a href="\${esc(p.url)}" target="_blank" rel="noopener noreferrer">\${esc(p.name)}</a>\` : esc(p.name)}
+        <td>\${link(p.url, p.name)}
           \${p.brand ? '<div class="meta mono" style="font-size:11px;color:var(--dim)">' + esc(p.brand) + '</div>' : ''}</td>
         <td class="mono" style="font-size:12px">\${esc(p.vendor_id)}</td>
         <td class="mono" style="font-size:12px">\${esc(p.sku ?? '—')}</td>

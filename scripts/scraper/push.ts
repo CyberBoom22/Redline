@@ -29,6 +29,17 @@ export async function push(options: PushOptions = {}): Promise<void> {
   if (!base) throw new Error('Set REDLINE_DASHBOARD_URL (or pass --url=) to the deployed Worker origin');
   if (!secret) throw new Error('Set REDLINE_INGEST_SECRET (or pass --secret=) to the Worker ingest secret');
 
+  // The secret travels in a header, so the transport has to be encrypted.
+  // localhost is exempt so `npm run preview` can be tested without TLS.
+  const parsed = new URL(base);
+  const isLocal = parsed.hostname === 'localhost' || parsed.hostname === '127.0.0.1';
+  if (parsed.protocol !== 'https:' && !isLocal) {
+    throw new Error(`Refusing to send the ingest secret over ${parsed.protocol}// — use https`);
+  }
+  if (secret.length < 24) {
+    throw new Error('REDLINE_INGEST_SECRET is too short — use at least 24 characters (openssl rand -hex 32)');
+  }
+
   const report = await readReport(options.runId);
   if (!report) throw new Error('No scan report found. Run `npm run scrape` first.');
 

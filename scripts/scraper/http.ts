@@ -23,6 +23,48 @@ export class BlockedError extends Error {
 
 const sleep = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
 
+/** A product page is tens of KB; anything past this is not worth buffering. */
+const MAX_RESPONSE_BYTES = 5 * 1024 * 1024;
+
+/**
+ * Read a response body with a hard ceiling. `res.text()` would buffer whatever
+ * the server sends, so a hostile or broken endpoint could exhaust memory.
+ */
+async function readCapped(res: Response, maxBytes: number): Promise<string> {
+  const declared = Number(res.headers.get('content-length') ?? '0');
+  if (Number.isFinite(declared) && declared > maxBytes) {
+    throw new Error(`response too large (${declared} bytes)`);
+  }
+
+  const reader = res.body?.getReader();
+  if (!reader) return '';
+
+  const chunks: Uint8Array[] = [];
+  let total = 0;
+  try {
+    for (;;) {
+      const { done, value } = await reader.read();
+      if (done) break;
+      total += value.length;
+      if (total > maxBytes) {
+        await reader.cancel();
+        throw new Error(`response exceeded ${maxBytes} bytes`);
+      }
+      chunks.push(value);
+    }
+  } finally {
+    reader.releaseLock?.();
+  }
+
+  const merged = new Uint8Array(total);
+  let offset = 0;
+  for (const chunk of chunks) {
+    merged.set(chunk, offset);
+    offset += chunk.length;
+  }
+  return new TextDecoder().decode(merged);
+}
+
 /**
  * One polite HTTP client per vendor. It serialises requests, honours the
  * crawl delay, sends conditional headers, and books every attempt against the
@@ -77,9 +119,25 @@ export class PoliteClient {
     }
   }
 
+  /**
+   * A URL is fetchable only if it is on this vendor's own origin AND permitted
+   * by robots.txt. The origin check matters because listing pages are
+   * third-party HTML: a "next page" link or a product link pointing at another
+   * host would otherwise be queued and fetched, turning the scraper into a
+   * request forwarder for whatever a vendor page names.
+   */
   allows(url: string): boolean {
     if (!this.robots) return false;
+    if (!this.sameOrigin(url)) return false;
     return isAllowed(this.robots, url);
+  }
+
+  private sameOrigin(url: string): boolean {
+    try {
+      return new URL(url).origin === new URL(this.vendor.origin).origin;
+    } catch {
+      return false;
+    }
   }
 
   /** Fetch a queue entry, sending validators so unchanged pages come back 304. */
@@ -123,13 +181,23 @@ export class PoliteClient {
       return { status: 304, finalUrl: res.url || url };
     }
 
-    const body = res.status === 200 ? await res.text() : undefined;
+    const finalUrl = res.url || url;
+
+    // Redirects are followed, so where we ended up has to be re-checked: a
+    // vendor URL that redirects off-origin must not be parsed or used as the
+    // base for resolving further links.
+    if (res.status === 200 && !this.sameOrigin(finalUrl)) {
+      this.log(`[${this.vendor.id}] ignoring off-origin redirect: ${url} -> ${finalUrl}`);
+      return { status: 502, finalUrl };
+    }
+
+    const body = res.status === 200 ? await readCapped(res, MAX_RESPONSE_BYTES) : undefined;
     return {
       status: res.status,
       body,
       etag: res.headers.get('etag') ?? undefined,
       lastModified: res.headers.get('last-modified') ?? undefined,
-      finalUrl: res.url || url,
+      finalUrl,
     };
   }
 }

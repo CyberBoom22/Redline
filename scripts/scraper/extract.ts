@@ -63,8 +63,11 @@ export function extractLinks(html: string, baseUrl: string, selector: string, pa
     } catch {
       return;
     }
-    const clean = abs.split('#')[0];
-    if (re.test(clean)) seen.add(clean);
+    // Anchors come from third-party HTML; only http(s) is ever followed.
+    if (abs.startsWith('http://') || abs.startsWith('https://')) {
+      const clean = abs.split('#')[0];
+      if (re.test(clean)) seen.add(clean);
+    }
   });
 
   return [...seen];
@@ -76,7 +79,9 @@ export function extractNextPage(html: string, baseUrl: string, selector?: string
   const href = $(selector).first().attr('href');
   if (!href) return null;
   try {
-    return new URL(href, baseUrl).toString();
+    const abs = new URL(href, baseUrl);
+    if (abs.protocol !== 'http:' && abs.protocol !== 'https:') return null;
+    return abs.toString();
   } catch {
     return null;
   }
