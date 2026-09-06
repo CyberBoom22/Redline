@@ -1,0 +1,11 @@
+{
+  "date": "2026-09-06",
+  "limit": 100,
+  "used": 9,
+  "byVendor": {
+    "ecs": 1,
+    "fcp": 4,
+    "z1": 4
+  },
+  "notModified": 0
+}
