@@ -9,4 +9,4 @@ coverage/
 
 # Wrangler local state (local D1, dev cache)
 worker/.wrangler/
-test/seed.generated.sql
+worker/test/seed.generated.sql
