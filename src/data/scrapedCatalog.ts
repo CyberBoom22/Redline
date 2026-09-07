@@ -1,5 +1,5 @@
 // GENERATED FILE — do not edit by hand.
-// Written by scripts/scraper (npm run scrape:emit). Last generated 2026-09-06T12:54:48.008Z.
+// Written by scripts/scraper (npm run scrape:emit). Last generated 2026-09-07T15:03:02.782Z.
 //
 // Vendor catalog data: pricing, availability and fitment scraped from retailer
 // product pages. Editorial fields (whpGain, verdict, labor) live in parts.ts.
@@ -23,7 +23,7 @@ export interface CatalogListing {
   lastSeenAt: string;
 }
 
-export const CATALOG_GENERATED_AT = '2026-09-06T12:54:48.008Z';
+export const CATALOG_GENERATED_AT = '2026-09-07T15:03:02.782Z';
 
 export const SCRAPED_CATALOG: CatalogListing[] = [];
 
