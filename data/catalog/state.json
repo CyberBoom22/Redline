@@ -99,7 +99,17 @@
       "unchanged": 0,
       "errors": 0,
       "stoppedReason": "queue-empty"
+    },
+    {
+      "startedAt": "2026-09-08T13:37:00.206Z",
+      "finishedAt": "2026-09-08T13:37:00.807Z",
+      "requests": 3,
+      "discovered": 0,
+      "updated": 0,
+      "unchanged": 0,
+      "errors": 0,
+      "stoppedReason": "queue-empty"
     }
   ],
-  "lastRunAt": "2026-09-07T15:03:02.338Z"
+  "lastRunAt": "2026-09-08T13:37:00.807Z"
 }
