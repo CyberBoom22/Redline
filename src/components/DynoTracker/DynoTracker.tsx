@@ -3,6 +3,7 @@ import { EngineId, VehicleSelection, UserDynoRun, DynoDataPoint } from '../../ty
 import { generateDynoCurveData } from '../../data/platforms';
 import { ResponsiveContainer, LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend } from 'recharts';
 import { Activity, Plus, Gauge, Calendar, Flame, Sliders, FileText, Check } from 'lucide-react';
+import { Modal } from '../ui/Modal';
 
 interface DynoTrackerProps {
   vehicle: VehicleSelection;
@@ -205,8 +206,14 @@ export const DynoTracker: React.FC<DynoTrackerProps> = ({
 
       {/* Log Run Modal */}
       {showLogModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/80 backdrop-blur-md p-4">
-          <div className="bg-slate-900 border border-slate-800 rounded-2xl w-full max-w-lg p-6 space-y-4 shadow-2xl text-slate-100">
+        <Modal
+          isOpen={showLogModal}
+          onClose={() => setShowLogModal(false)}
+          maxWidth="max-w-lg"
+          backdropClassName="bg-slate-950/80"
+          bodyClassName="p-6 space-y-4"
+        >
+          <div className="space-y-4">
             <h3 className="font-mono font-bold text-base uppercase text-white flex items-center gap-2">
               <Activity className="w-5 h-5 text-red-500" />
               <span>Log Chassis Dyno Session</span>
@@ -299,7 +306,7 @@ export const DynoTracker: React.FC<DynoTrackerProps> = ({
               </div>
             </form>
           </div>
-        </div>
+        </Modal>
       )}
     </div>
   );

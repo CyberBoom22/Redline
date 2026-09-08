@@ -11,7 +11,7 @@ import { promises as fs } from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
 import { Budget, BudgetExhaustedError, DAILY_REQUEST_LIMIT } from './budget';
-import { extractLinks, extractProduct, parsePrice } from './extract';
+import { extractLinks, extractNextPage, extractProduct, parsePrice } from './extract';
 import { matchCategory, matchEngines } from './fitment';
 import { isAllowed, parseRobots } from './robots';
 import { REFRESH_INTERVAL_DAYS, Store } from './state';
@@ -26,7 +26,7 @@ const tests: { name: string; fn: () => void | Promise<void> }[] = [];
 check('robots: disallow blocks, longer allow wins', () => {
   const rules = parseRobots(
     ['User-agent: *', 'Disallow: /checkout', 'Disallow: /search', 'Allow: /search/parts', 'Crawl-delay: 10'].join('\n'),
-    'RedlineCatalogBot/1.0',
+    'Stage0CatalogBot/1.0',
   );
   assert.equal(rules.crawlDelayMs, 10_000);
   assert.equal(isAllowed(rules, 'https://x.test/products/abc'), true);
@@ -37,15 +37,15 @@ check('robots: disallow blocks, longer allow wins', () => {
 
 check('robots: a named group overrides the wildcard group', () => {
   const rules = parseRobots(
-    ['User-agent: *', 'Disallow: /', '', 'User-agent: RedlineCatalogBot', 'Disallow: /admin'].join('\n'),
-    'RedlineCatalogBot/1.0 (+repo)',
+    ['User-agent: *', 'Disallow: /', '', 'User-agent: Stage0CatalogBot', 'Disallow: /admin'].join('\n'),
+    'Stage0CatalogBot/1.0 (+repo)',
   );
   assert.equal(isAllowed(rules, 'https://x.test/products/abc'), true);
   assert.equal(isAllowed(rules, 'https://x.test/admin/x'), false);
 });
 
 check('robots: wildcards and end-anchors in patterns', () => {
-  const rules = parseRobots(['User-agent: *', 'Disallow: /*.pdf$', 'Disallow: /a/*/b'].join('\n'), 'RedlineCatalogBot');
+  const rules = parseRobots(['User-agent: *', 'Disallow: /*.pdf$', 'Disallow: /a/*/b'].join('\n'), 'Stage0CatalogBot');
   assert.equal(isAllowed(rules, 'https://x.test/manual.pdf'), false);
   assert.equal(isAllowed(rules, 'https://x.test/manual.pdf?x=1'), true);
   assert.equal(isAllowed(rules, 'https://x.test/a/zzz/b'), false);
@@ -132,6 +132,22 @@ check('extract: product links are absolutised, filtered and de-duplicated', () =
   ]);
 });
 
+check('security: non-http(s) links are never queued', () => {
+  const html = `<html><body>
+    <a class="product-name" href="javascript:alert(1)">xss</a>
+    <a class="product-name" href="data:text/html,<script>alert(1)</script>">data</a>
+    <a class="product-name" href="file:///etc/passwd">file</a>
+    <a class="product-name" href="https://www.fcpeuro.com/products/ok">fine</a>
+  </body></html>`;
+  const links = extractLinks(html, 'https://www.fcpeuro.com/x/', 'a.product-name', '.*');
+  assert.deepEqual(links, ['https://www.fcpeuro.com/products/ok']);
+});
+
+check('security: a next-page link with a non-http scheme is dropped', () => {
+  const html = '<html><body><a rel="next" href="javascript:alert(1)">next</a></body></html>';
+  assert.equal(extractNextPage(html, 'https://www.fcpeuro.com/x/', 'a[rel=\"next\"]'), null);
+});
+
 check('extract: price parsing strips symbols and separators', () => {
   assert.equal(parsePrice('$1,299.95'), 1299.95);
   assert.equal(parsePrice('USD 89'), 89);
@@ -160,7 +176,7 @@ check('fitment: unrelated text matches nothing', () => {
   assert.deepEqual(matchEngines(null, undefined, ''), []);
 });
 
-check('fitment: categories map onto the Redline taxonomy', () => {
+check('fitment: categories map onto the Stage0 taxonomy', () => {
   assert.equal(matchCategory('bootmod3 Flash Tune'), 'tune');
   assert.equal(matchCategory('Catless Downpipe'), 'downpipe');
   assert.equal(matchCategory('Wagner Competition Intercooler'), 'chargepipe_intercooler');
@@ -261,9 +277,16 @@ check('state: upsert distinguishes new, changed and unchanged', async () => {
     extractedVia: 'json-ld',
   };
 
-  assert.equal(store.upsert(base), 'new');
-  assert.equal(store.upsert({ ...base }), 'unchanged', 'identical data must not count as a change');
-  assert.equal(store.upsert({ ...base, price: 299.99 }), 'changed');
+  assert.equal(store.upsert(base).status, 'new');
+  assert.equal(store.upsert({ ...base }).status, 'unchanged', 'identical data must not count as a change');
+
+  const priceDrop = store.upsert({ ...base, price: 299.99 });
+  assert.equal(priceDrop.status, 'changed');
+  assert.deepEqual(
+    priceDrop.fields,
+    [{ field: 'price', from: 329.99, to: 299.99 }],
+    'the report needs to know which field moved, not just that one did',
+  );
 
   const stored = store.allParts.find((p) => p.id === base.id);
   assert.equal(stored?.price, 299.99);
@@ -288,7 +311,7 @@ check('state: queue and catalog survive a save/load round-trip', async () => {
 });
 
 async function tmpdir(): Promise<string> {
-  return fs.mkdtemp(path.join(os.tmpdir(), 'redline-scraper-'));
+  return fs.mkdtemp(path.join(os.tmpdir(), 'stage0-scraper-'));
 }
 
 (async () => {

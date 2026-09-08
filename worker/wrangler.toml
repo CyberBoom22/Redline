@@ -1,0 +1,32 @@
+name = "stage0-dashboard"
+main = "src/index.ts"
+compatibility_date = "2025-07-18"
+
+[observability]
+enabled = true
+
+# SUPERSEDED. This Worker was the D1-backed admin dashboard from before the
+# Supabase build; the admin report now lives inside the SPA and reads Supabase
+# directly. It is kept only so nothing references a missing directory.
+#
+# It deliberately claims NO route. The rebrand rewrote its old hostname to
+# stage0.us, which would have made `wrangler deploy` from this directory take
+# the domain away from the public app. If this is ever deployed again, give it
+# its own hostname -- never the app's.
+
+[[d1_databases]]
+binding = "DB"
+database_name = "stage0-catalog"
+database_id = "8d625631-ff7d-4ddf-bf16-f3875a4f8e8c"
+
+[vars]
+# Both are required for the Worker to serve any read. Until they are set, reads
+# are refused with 503 — a deploy that lands before the Access policy exists is
+# locked rather than public.
+#   ACCESS_TEAM_DOMAIN: "<your-team>.cloudflareaccess.com"
+#   ACCESS_AUD:         the Application Audience tag from the Access app
+ACCESS_TEAM_DOMAIN = ""
+ACCESS_AUD = ""
+
+# Secrets, set out of band and never committed:
+#   npx wrangler secret put INGEST_SECRET

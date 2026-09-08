@@ -17,11 +17,14 @@ for those platforms.
 
 ```bash
 npm run scrape            # fetch what is due, within today's remaining budget
+npm run scrape:report     # what the last scan added, changed and removed
 npm run scrape:plan       # show what the next run would fetch — spends nothing
 npm run scrape:status     # budget, coverage, and what is queued for tomorrow
 npm run scrape:verify     # check seed URLs and selectors against the live sites
 npm run scrape:emit       # regenerate src/data/scrapedCatalog.ts from stored data
 npm run scrape:test       # offline self-test of the parsing and budget logic
+npm run scrape:e2e        # full run loop against a local fixture server
+npm run scrape:push       # send the latest report to the dashboard database
 ```
 
 `npm run scrape -- run --only=z1 --limit=10` restricts a run to one vendor and
@@ -100,6 +103,36 @@ Expect roughly:
 - **Steady state** — most days are cheap: only pages past their refresh interval
   are due, and many of those return 304.
 
+## The daily change report
+
+Every run writes `data/catalog/runs/<runId>.json` describing exactly what it
+did: pages scanned, products added, products changed **field by field**
+(`price: 329.99 → 299.99`), products removed when their page 404s, and any
+errors. `data/catalog/runs/index.json` keeps a rolling 90-run summary.
+
+```bash
+npm run scrape:report               # the latest scan, formatted for reading
+npm run scrape:report -- --list     # one line per scan, newest first
+npm run scrape:report -- --json     # the raw object, for a database or an email
+npm run scrape:report -- --run=2026-09-06T0800
+```
+
+The report shape (`RunReport` in `types.ts`) is deliberately storage-agnostic —
+the same object is what gets printed in CI logs, committed to the repo, and
+pushed to a database or mailed out once a backend is wired up. Nothing about it
+assumes where it ends up.
+
+## Dashboard
+
+`npm run scrape:push` posts the latest report — and the catalog snapshot — to
+the Cloudflare Worker in `worker/`, which stores it in D1 and serves a private
+dashboard behind Cloudflare Access. The daily workflow runs this automatically
+once `STAGE0_DASHBOARD_URL` and `STAGE0_INGEST_SECRET` are configured, and
+skips it silently when they are not. Setup lives in `worker/README.md`.
+
+CI holds only a single-purpose ingest secret, not a Cloudflare API token — the
+Worker owns the database, and the scraper only speaks HTTP to it.
+
 ## Being a good citizen
 
 - `robots.txt` is fetched and obeyed per run; a disallowed URL is dropped from
@@ -122,6 +155,7 @@ own catalog.
 - `data/catalog/parts.json` — the full scraped record, including price history.
 - `data/catalog/state.json` — queue, fetch timestamps, ETags, run history.
 - `data/catalog/budget.json` — today's ledger.
+- `data/catalog/runs/*.json` — per-run change reports, plus `index.json`.
 - `src/data/scrapedCatalog.ts` — generated module the app imports.
 
 Scraped data covers only what a storefront publishes. The editorial fields in
@@ -149,3 +183,25 @@ The usual failure is a storefront redesign. Symptoms and fixes:
 | `429 … backing off` | rate limited | raise `minDelayMs`, lower `budgetShare` |
 
 `npm run scrape:verify` reproduces the first two without waiting for a run.
+
+## Schedule
+
+`.github/workflows/scrape-catalog.yml` runs the scan at **3:00 a.m. Eastern,
+daily**. Cron is UTC-only and does not follow daylight saving, so the workflow
+registers both 07:00 and 08:00 UTC and a `gate` job drops whichever one is not
+03:00 in `America/New_York` that day. Manual runs via *Run workflow* are never
+gated.
+
+GitHub only honours `schedule:` triggers on a repository's **default branch** —
+the workflow has to be merged to `main` before anything fires.
+
+## Tests
+
+`npm run scrape:test` covers the robots matcher, the extraction fallback chain,
+the budget cap and the de-duplication rules against fixtures — no network.
+
+`npm run scrape:e2e` runs the real loop over HTTP against a local fixture
+server: it asserts that disallowed and off-pattern links are never fetched,
+that a second run the same day re-requests nothing, and that a price change and
+a 404'd product show up correctly in the report. Both run in CI before each
+scrape.

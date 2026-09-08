@@ -40,7 +40,7 @@ export const DoorSelection: React.FC<DoorSelectionProps> = ({ doorMode, onSelect
               {doorMode === 'goal_first' && <span className="text-[10px] bg-red-900 text-red-300 px-1.5 py-0.2 rounded font-mono">ACTIVE</span>}
             </div>
             <p className="text-[11px] text-slate-400 mt-1 leading-snug">
-              Select your targeted horsepower goal. Redline maps out the exact parts, required supporting mods, and risk warnings to get there.
+              Select your targeted horsepower goal. Stage0 maps out the exact parts, required supporting mods, and risk warnings to get there.
             </p>
           </div>
         </button>
@@ -64,7 +64,7 @@ export const DoorSelection: React.FC<DoorSelectionProps> = ({ doorMode, onSelect
               {doorMode === 'inventory_first' && <span className="text-[10px] bg-red-900 text-red-300 px-1.5 py-0.2 rounded font-mono">ACTIVE</span>}
             </div>
             <p className="text-[11px] text-slate-400 mt-1 leading-snug">
-              Check off your existing modifications. Redline pre-checks your inventory on the fixed path and exposes missing critical gaps.
+              Check off your existing modifications. Stage0 pre-checks your inventory on the fixed path and exposes missing critical gaps.
             </p>
           </div>
         </button>

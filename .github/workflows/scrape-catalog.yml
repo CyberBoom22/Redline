@@ -6,7 +6,11 @@ name: Scrape parts catalog
 # than each getting their own.
 on:
   schedule:
-    - cron: '17 9 * * *' # 09:17 UTC daily, off the hour to avoid the stampede
+    # Cron is UTC-only and does not follow daylight saving, so both offsets are
+    # listed and the `gate` job below drops whichever one is not 03:00 in New
+    # York today. That keeps the scan at 3am Eastern all year.
+    - cron: '0 7 * * *' # 03:00 EDT (Mar-Nov)
+    - cron: '0 8 * * *' # 03:00 EST (Nov-Mar)
   workflow_dispatch:
     inputs:
       limit:
@@ -27,7 +31,32 @@ permissions:
   contents: write
 
 jobs:
+  # Both cron entries fire year-round; only one of them is 3am in New York on
+  # any given day. A manual run is never gated.
+  gate:
+    runs-on: ubuntu-latest
+    outputs:
+      proceed: ${{ steps.check.outputs.proceed }}
+    steps:
+      - id: check
+        run: |
+          if [ "${{ github.event_name }}" != "schedule" ]; then
+            echo "Manual run - proceeding."
+            echo "proceed=true" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+          hour=$(TZ=America/New_York date +%H)
+          if [ "$hour" = "03" ]; then
+            echo "It is 03:00 in New York - proceeding."
+            echo "proceed=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "It is ${hour}:00 in New York - this is the other DST schedule. Skipping."
+            echo "proceed=false" >> "$GITHUB_OUTPUT"
+          fi
+
   scrape:
+    needs: gate
+    if: needs.gate.outputs.proceed == 'true'
     runs-on: ubuntu-latest
     timeout-minutes: 45
     steps:
@@ -41,7 +70,16 @@ jobs:
         run: bun install --frozen-lockfile
 
       - name: Verify scraper logic
-        run: bun run scrape:test
+        run: |
+          bun run scrape:test
+          bun run scrape:e2e
+
+      - name: Verify dashboard security
+        working-directory: worker
+        run: |
+          npm install
+          npx wrangler d1 execute stage0-catalog --local --file schema.sql
+          npm run test:security
 
       - name: Scrape
         run: |
@@ -53,8 +91,20 @@ jobs:
       - name: Regenerate the catalog module
         run: bun run scrape:emit
 
+      - name: Scan report
+        run: bun run scrape:report
+
       - name: Report status
         run: bun run scrape:status
+
+      # Ships the report to the D1-backed dashboard. Skipped automatically when
+      # the variable is not configured, so the scrape still succeeds without it.
+      - name: Push report to dashboard
+        if: vars.STAGE0_DASHBOARD_URL != ''
+        env:
+          STAGE0_DASHBOARD_URL: ${{ vars.STAGE0_DASHBOARD_URL }}
+          STAGE0_INGEST_SECRET: ${{ secrets.STAGE0_INGEST_SECRET }}
+        run: bun run scrape:push
 
       - name: Commit catalog changes
         run: |

@@ -2,7 +2,7 @@ import { PLATFORMS } from '../../src/data/platforms';
 import { EngineId, PartCategory } from '../../src/types';
 
 /**
- * Maps free-text from a product page onto Redline's engine ids.
+ * Maps free-text from a product page onto Stage0's engine ids.
  *
  * Chassis codes and trim names come straight from `src/data/platforms.ts` so
  * the vehicle list stays the single source of truth; the extra patterns below
@@ -95,7 +95,7 @@ export function matchEngines(...texts: (string | null | undefined)[]): EngineId[
   return [...matched];
 }
 
-/** Keyword rules mapping a vendor's own wording onto Redline's part categories. */
+/** Keyword rules mapping a vendor's own wording onto Stage0's part categories. */
 const CATEGORY_RULES: { category: PartCategory; patterns: RegExp[] }[] = [
   { category: 'tune', patterns: [/\btune|tuning|flash|calibrat|bootmod|\bmhd\b|\bxhp\b|\becu\b|\btcu\b|piggyback/i] },
   { category: 'downpipe', patterns: [/down ?pipe|\bdp\b|catless|catted|high ?flow ?cat|test ?pipe/i] },

@@ -6,3 +6,8 @@ coverage/
 *.log
 .env*
 !.env.example
+
+# Wrangler local state (local D1, dev cache)
+worker/.wrangler/
+worker/test/seed.generated.sql
+dist-preview/

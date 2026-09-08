@@ -1,0 +1,32 @@
+# Stage0 — public app deployment.
+#
+# Assets-only Worker: no Worker script, so requests are served straight from
+# the built SPA. `not_found_handling = "single-page-application"` is what makes
+# /admin and /admin/login survive a hard refresh — without it the static host
+# returns 404 before React ever loads.
+#
+#   bun run build
+#   npx wrangler deploy
+
+name = "stage0"
+compatibility_date = "2026-09-08"
+
+# stage0.us is the only origin. Leaving the *.workers.dev route enabled would
+# publish a second, indexable copy of the app on a different origin -- which
+# also means a second origin holding Supabase auth sessions.
+workers_dev = false
+
+[assets]
+directory = "./dist"
+not_found_handling = "single-page-application"
+
+[[routes]]
+pattern = "stage0.us"
+custom_domain = true
+
+[[routes]]
+pattern = "www.stage0.us"
+custom_domain = true
+
+[observability]
+enabled = true

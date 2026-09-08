@@ -1,7 +1,9 @@
 import React, { useState } from 'react';
 import { VehicleSelection, PlatformId, EngineId } from '../types';
 import { PLATFORMS } from '../data/platforms';
+import { normalizeVin, validateVin } from '../lib/vin';
 import { X, Check, Car, Cpu, Search, AlertCircle } from 'lucide-react';
+import { Modal } from './ui/Modal';
 
 interface PlatformSelectorModalProps {
   isOpen: boolean;
@@ -23,6 +25,7 @@ export const PlatformSelectorModal: React.FC<PlatformSelectorModalProps> = ({
   const [transmission, setTransmission] = useState<VehicleSelection['transmission']>(vehicle.transmission);
   const [vinInput, setVinInput] = useState<string>(vehicle.vin || '');
   const [vinError, setVinError] = useState<string | null>(null);
+  const [vinWarning, setVinWarning] = useState<string | null>(null);
 
   if (!isOpen) return null;
 
@@ -41,10 +44,23 @@ export const PlatformSelectorModal: React.FC<PlatformSelectorModalProps> = ({
   const handleVinLookup = (e: React.FormEvent) => {
     e.preventDefault();
     setVinError(null);
-    const cleanVin = vinInput.trim().toUpperCase();
+    setVinWarning(null);
+    const cleanVin = normalizeVin(vinInput);
     if (!cleanVin || cleanVin.length < 5) {
       setVinError('Please enter at least 5 characters of your VIN (e.g., WBA5R... or JN1CV...)');
       return;
+    }
+
+    // A partial entry is still a useful shortcut, so prefix decoding is left
+    // alone. Once the input is VIN-length, it is validated properly: format
+    // errors block, a failed check digit only warns.
+    if (cleanVin.length === 17) {
+      const result = validateVin(cleanVin);
+      if (!result.ok) {
+        setVinError(result.error);
+        return;
+      }
+      setVinWarning(result.warning);
     }
 
     // Attempt VIN decode logic matching platform VIN prefixes
@@ -78,9 +94,12 @@ export const PlatformSelectorModal: React.FC<PlatformSelectorModalProps> = ({
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/80 backdrop-blur-md p-4 overflow-y-auto">
-      <div className="bg-slate-900 border border-slate-800 rounded-2xl w-full max-w-2xl shadow-2xl text-slate-100 overflow-hidden my-8">
-        {/* Modal Header */}
+    <Modal
+      isOpen={isOpen}
+      onClose={onClose}
+      maxWidth="max-w-2xl"
+      backdropClassName="bg-slate-950/80"
+      header={
         <div className="flex items-center justify-between px-6 py-4 border-b border-slate-800 bg-slate-950">
           <div className="flex items-center gap-2.5">
             <Car className="w-5 h-5 text-red-500" />
@@ -95,8 +114,28 @@ export const PlatformSelectorModal: React.FC<PlatformSelectorModalProps> = ({
             <X className="w-5 h-5" />
           </button>
         </div>
-
-        <div className="p-6 space-y-6 max-h-[80vh] overflow-y-auto">
+      }
+      footer={
+        <div className="flex items-center justify-end gap-3 px-6 py-4 border-t border-slate-800 bg-slate-950">
+          <button
+            onClick={onClose}
+            className="px-4 py-2 text-xs font-semibold text-slate-400 hover:text-slate-200 transition-colors"
+          >
+            Cancel
+          </button>
+          <button
+            onClick={handleSave}
+            id="confirm-vehicle-btn"
+            className="px-5 py-2.5 bg-red-600 hover:bg-red-500 text-white font-bold text-xs rounded-xl shadow-lg shadow-red-900/40 transition-all border border-red-500/40"
+          >
+            Confirm Platform Selection
+          </button>
+        </div>
+      }
+    >
+      {/* The shell caps the panel height and scrolls this body, so no local
+          max-h belongs here. */}
+      <div className="p-6 space-y-6">
           {/* VIN Decoder Quick Option */}
           <div className="p-4 rounded-xl bg-slate-950/60 border border-slate-800 space-y-2">
             <div className="flex items-center justify-between">
@@ -126,6 +165,9 @@ export const PlatformSelectorModal: React.FC<PlatformSelectorModalProps> = ({
                 <AlertCircle className="w-3 h-3" />
                 <span>{vinError}</span>
               </p>
+            )}
+            {vinWarning && (
+              <p className="text-[11px] text-amber-400 mt-2 leading-relaxed">{vinWarning}</p>
             )}
           </div>
 
@@ -247,25 +289,7 @@ export const PlatformSelectorModal: React.FC<PlatformSelectorModalProps> = ({
               ))}
             </div>
           </div>
-        </div>
-
-        {/* Modal Footer */}
-        <div className="flex items-center justify-end gap-3 px-6 py-4 border-t border-slate-800 bg-slate-950">
-          <button
-            onClick={onClose}
-            className="px-4 py-2 text-xs font-semibold text-slate-400 hover:text-slate-200 transition-colors"
-          >
-            Cancel
-          </button>
-          <button
-            onClick={handleSave}
-            id="confirm-vehicle-btn"
-            className="px-5 py-2.5 bg-red-600 hover:bg-red-500 text-white font-bold text-xs rounded-xl shadow-lg shadow-red-900/40 transition-all border border-red-500/40"
-          >
-            Confirm Platform Selection
-          </button>
-        </div>
       </div>
-    </div>
+    </Modal>
   );
 };

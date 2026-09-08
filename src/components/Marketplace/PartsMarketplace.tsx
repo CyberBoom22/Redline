@@ -156,7 +156,7 @@ export const PartsMarketplace: React.FC<PartsMarketplaceProps> = ({
                   {/* Verdict Line */}
                   <div className="bg-slate-950 p-2.5 rounded-xl border border-slate-800">
                     <span className="text-[10px] font-mono uppercase font-bold text-slate-400 block mb-0.5">
-                      REDLINE HONEST VERDICT:
+                      STAGE0 HONEST VERDICT:
                     </span>
                     <p className="text-xs text-red-300 italic font-medium">
                       "{part.verdict}"

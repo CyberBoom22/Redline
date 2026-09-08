@@ -1,6 +1,7 @@
 import React, { useRef } from 'react';
 import { VehicleSelection, Part, TieredWarning } from '../types';
 import { PLATFORMS } from '../data/platforms';
+import { Modal } from './ui/Modal';
 import { Gauge, X, Share2, CheckSquare, Square, AlertOctagon, DollarSign, Printer, Download } from 'lucide-react';
 
 interface BuildSummaryModalProps {
@@ -47,8 +48,8 @@ export const BuildSummaryModal: React.FC<BuildSummaryModalProps> = ({
   const handleShare = () => {
     if (navigator.share) {
       navigator.share({
-        title: `Redline Build Card - ${vehicle.trim}`,
-        text: `Check out my ${vehicle.trim} build summary on Redline: ${projectedWhp} WHP projected / ${goalWhp} WHP goal!`,
+        title: `Stage0 Build Card - ${vehicle.trim}`,
+        text: `Check out my ${vehicle.trim} build summary on Stage0: ${projectedWhp} WHP projected / ${goalWhp} WHP goal!`,
         url: window.location.href
       }).catch(() => {});
     } else {
@@ -58,14 +59,17 @@ export const BuildSummaryModal: React.FC<BuildSummaryModalProps> = ({
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/90 backdrop-blur-md p-4 overflow-y-auto">
-      <div className="bg-slate-900 border border-slate-800 rounded-2xl w-full max-w-4xl shadow-2xl text-slate-100 overflow-hidden my-6">
-        {/* Modal Header */}
+    <Modal
+      isOpen={isOpen}
+      onClose={onClose}
+      maxWidth="max-w-4xl"
+      backdropClassName="bg-slate-950/90"
+      header={
         <div className="flex items-center justify-between px-6 py-4 border-b border-slate-800 bg-slate-950 print:hidden">
           <div className="flex items-center gap-2">
             <Gauge className="w-5 h-5 text-red-500" />
             <h2 className="text-base font-bold font-mono text-white uppercase tracking-wider">
-              Redline Build Card — The Group Chat Screenshot Screen
+              Stage0 Build Card — The Group Chat Screenshot Screen
             </h2>
           </div>
           <div className="flex items-center gap-2">
@@ -91,15 +95,16 @@ export const BuildSummaryModal: React.FC<BuildSummaryModalProps> = ({
             </button>
           </div>
         </div>
-
-        {/* The Screenshot Printable Container */}
-        <div ref={cardRef} className="p-8 space-y-6 bg-slate-950 text-slate-100 print:p-0">
+      }
+    >
+      {/* The Screenshot Printable Container */}
+        <div ref={cardRef} id="build-card" className="p-8 space-y-6 bg-slate-950 text-slate-100 print:p-0">
           {/* Header Branding */}
           <div className="flex items-center justify-between border-b border-slate-800 pb-4">
             <div>
               <div className="flex items-center gap-2">
                 <span className="text-2xl font-black font-mono tracking-wider text-red-500 uppercase">
-                  REDLINE
+                  STAGE0
                 </span>
                 <span className="text-xs text-slate-400 font-mono">BUILD SUMMARY</span>
               </div>
@@ -200,8 +205,7 @@ export const BuildSummaryModal: React.FC<BuildSummaryModalProps> = ({
           <div className="pt-4 border-t border-slate-800 text-[11px] text-slate-500 leading-relaxed font-mono">
             <strong>THE DISCLAIMER:</strong> All build paths are calculated from a stock vehicle. Checking off mods you already have only marks your place on that path — it doesn't change the path, recalculate for your specific car, or account for its condition, history, or mileage. You'll still see every step and every precaution, whether you've done it or not. This is reference information, not advice for your individual vehicle.
           </div>
-        </div>
       </div>
-    </div>
+    </Modal>
   );
 };
