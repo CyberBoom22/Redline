@@ -2,10 +2,13 @@
 --
 -- The "exactly one admin" guarantee lives here, not in the React route guard.
 -- The guard is UX; this is the enforcement. Assume the registration page will
--- be found by someone who was not invited to it.
+-- be found by a stranger.
 --
--- The only way into `admins` is claim_admin(). The table has no INSERT policy,
--- so an authenticated user holding the anon key cannot write to it directly.
+-- Every function below is `security definer` with `set search_path = ''`.
+-- Without the pinned path, a caller who can create objects in a schema they
+-- control could shadow an unqualified reference and hijack a function running
+-- with the definer's privileges. With it, every object must be fully
+-- qualified — `public.admins`, `auth.uid()` — and there is nothing to shadow.
 
 create table if not exists public.admins (
   user_id    uuid primary key references auth.users (id) on delete cascade,
@@ -13,54 +16,55 @@ create table if not exists public.admins (
 );
 
 -- Belt and braces: even if claim_admin() were bypassed or buggy, the database
--- physically cannot hold a second row. A unique index on a constant expression
--- permits exactly one.
+-- physically cannot hold a second row.
 create unique index if not exists admins_singleton on public.admins ((true));
 
 alter table public.admins enable row level security;
 
 -- Deliberately no INSERT, UPDATE or DELETE policy. The admin may read their own
--- row and nothing else; the uid is never exposed to anyone else.
+-- row and nothing else; no other user's uid is ever exposed.
 drop policy if exists admins_read_self on public.admins;
 create policy admins_read_self on public.admins
   for select to authenticated
-  using (user_id = auth.uid());
+  using (user_id = (select auth.uid()));
 
 revoke insert, update, delete on public.admins from anon, authenticated;
 grant select on public.admins to authenticated;
 
 -- Is the caller the administrator?
 --
--- security definer so it can read `admins` past that table's RLS. Granted to
--- anon as well as authenticated: RLS policies are evaluated as the querying
--- role, so without the anon grant a logged-out REST query would fail with a
--- permission error instead of returning an empty array.
+-- Granted to anon as well as authenticated. RLS policy expressions are
+-- evaluated as the querying role, so without the anon grant a logged-out REST
+-- read of a protected table fails with "permission denied for function"
+-- instead of returning an empty array. The function itself leaks nothing: for
+-- anon, auth.uid() is null and the answer is always false.
 create or replace function public.is_admin()
 returns boolean
 language sql
 stable
 security definer
-set search_path = public, pg_temp
+set search_path = ''
 as $$
-  select exists (select 1 from public.admins where user_id = auth.uid());
+  select exists (select 1 from public.admins where user_id = (select auth.uid()));
 $$;
 
-revoke all on function public.is_admin() from public;
+revoke all on function public.is_admin() from public, anon, authenticated;
 grant execute on function public.is_admin() to anon, authenticated;
 
--- Has the single admin slot been taken? Returns only a boolean, never the uid,
--- so the registration page can close itself without leaking who the admin is.
+-- Has the single admin slot been taken? Returns a boolean and nothing else --
+-- never a count, an id or an email — so the registration page can close itself
+-- without revealing who the administrator is.
 create or replace function public.admin_exists()
 returns boolean
 language sql
 stable
 security definer
-set search_path = public, pg_temp
+set search_path = ''
 as $$
   select exists (select 1 from public.admins);
 $$;
 
-revoke all on function public.admin_exists() from public;
+revoke all on function public.admin_exists() from public, anon, authenticated;
 grant execute on function public.admin_exists() to anon, authenticated;
 
 -- Claim the administrator slot. Succeeds exactly once, ever.
@@ -68,20 +72,21 @@ create or replace function public.claim_admin()
 returns void
 language plpgsql
 security definer
-set search_path = public, pg_temp
+set search_path = ''
 as $$
 declare
-  v_uid uuid := auth.uid();
+  v_uid uuid := (select auth.uid());
 begin
   if v_uid is null then
     raise exception 'Not authenticated' using errcode = '28000';
   end if;
 
-  -- Two people submitting the registration form at the same moment would both
-  -- see an empty table without this. The lock serialises the check and insert.
+  -- Two people submitting the form in the same moment would both see an empty
+  -- table without this. The lock serialises the check and the insert.
   lock table public.admins in exclusive mode;
 
   if exists (select 1 from public.admins) then
+    -- Clear to the operator, and says nothing about who holds the slot.
     raise exception 'An administrator already exists' using errcode = '42501';
   end if;
 
@@ -89,5 +94,5 @@ begin
 end;
 $$;
 
-revoke all on function public.claim_admin() from public;
+revoke all on function public.claim_admin() from public, anon, authenticated;
 grant execute on function public.claim_admin() to authenticated;

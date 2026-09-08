@@ -56,12 +56,12 @@ alter table public.scrape_events enable row level security;
 drop policy if exists scrape_runs_admin_read on public.scrape_runs;
 create policy scrape_runs_admin_read on public.scrape_runs
   for select to anon, authenticated
-  using (public.is_admin());
+  using ((select public.is_admin()));
 
 drop policy if exists scrape_events_admin_read on public.scrape_events;
 create policy scrape_events_admin_read on public.scrape_events
   for select to anon, authenticated
-  using (public.is_admin());
+  using ((select public.is_admin()));
 
 grant select on public.scrape_runs   to anon, authenticated;
 grant select on public.scrape_events to anon, authenticated;

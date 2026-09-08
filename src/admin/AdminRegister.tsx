@@ -13,6 +13,8 @@ import { AdminShell } from './AdminShell';
  * this page after the slot is taken gets an ordinary account with no admin
  * rights, and RLS shows them nothing.
  */
+const MIN_PASSWORD_LENGTH = 12;
+
 export const AdminRegister: React.FC = () => {
   const { session, isAdmin, loading, configError, refreshAdmin } = useAuth();
   const navigate = useNavigate();
@@ -53,12 +55,21 @@ export const AdminRegister: React.FC = () => {
 
     const client = requireSupabase();
     try {
+      // Enforced here on top of the project-level setting, so a misconfigured
+      // project cannot accept a weak administrator password.
+      if (password.length < MIN_PASSWORD_LENGTH) {
+        setError(`Choose a password of at least ${MIN_PASSWORD_LENGTH} characters.`);
+        return;
+      }
+
       const { data, error: signUpError } = await client.auth.signUp({
         email: email.trim(),
         password,
       });
       if (signUpError) {
-        setError(signUpError.message);
+        // Generic on purpose: "User already registered" would confirm which
+        // addresses exist on this project.
+        setError('Could not create the account. Check the email and password and try again.');
         return;
       }
 
@@ -160,13 +171,13 @@ export const AdminRegister: React.FC = () => {
           <input
             type="password"
             required
-            minLength={8}
+            minLength={MIN_PASSWORD_LENGTH}
             autoComplete="new-password"
             value={password}
             onChange={(e) => setPassword(e.target.value)}
             className="w-full bg-slate-950 border border-slate-800 focus:border-red-500/70 focus:outline-none rounded-lg px-3 py-2 text-sm text-slate-100"
           />
-          <span className="block text-[10px] text-slate-500">At least 8 characters.</span>
+          <span className="block text-[10px] text-slate-500">At least {MIN_PASSWORD_LENGTH} characters.</span>
         </label>
 
         {error && (

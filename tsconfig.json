@@ -21,7 +21,11 @@
       ]
     },
     "allowImportingTsExtensions": true,
-    "noEmit": true
+    "noEmit": true,
+    "types": [
+      "bun-types",
+      "node"
+    ]
   },
   "exclude": ["node_modules", "dist", "worker"]
 }

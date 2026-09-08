@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { VehicleSelection, PlatformId, EngineId } from '../types';
 import { PLATFORMS } from '../data/platforms';
+import { normalizeVin, validateVin } from '../lib/vin';
 import { X, Check, Car, Cpu, Search, AlertCircle } from 'lucide-react';
 
 interface PlatformSelectorModalProps {
@@ -23,6 +24,7 @@ export const PlatformSelectorModal: React.FC<PlatformSelectorModalProps> = ({
   const [transmission, setTransmission] = useState<VehicleSelection['transmission']>(vehicle.transmission);
   const [vinInput, setVinInput] = useState<string>(vehicle.vin || '');
   const [vinError, setVinError] = useState<string | null>(null);
+  const [vinWarning, setVinWarning] = useState<string | null>(null);
 
   if (!isOpen) return null;
 
@@ -41,10 +43,23 @@ export const PlatformSelectorModal: React.FC<PlatformSelectorModalProps> = ({
   const handleVinLookup = (e: React.FormEvent) => {
     e.preventDefault();
     setVinError(null);
-    const cleanVin = vinInput.trim().toUpperCase();
+    setVinWarning(null);
+    const cleanVin = normalizeVin(vinInput);
     if (!cleanVin || cleanVin.length < 5) {
       setVinError('Please enter at least 5 characters of your VIN (e.g., WBA5R... or JN1CV...)');
       return;
+    }
+
+    // A partial entry is still a useful shortcut, so prefix decoding is left
+    // alone. Once the input is VIN-length, it is validated properly: format
+    // errors block, a failed check digit only warns.
+    if (cleanVin.length === 17) {
+      const result = validateVin(cleanVin);
+      if (!result.ok) {
+        setVinError(result.error);
+        return;
+      }
+      setVinWarning(result.warning);
     }
 
     // Attempt VIN decode logic matching platform VIN prefixes
@@ -126,6 +141,9 @@ export const PlatformSelectorModal: React.FC<PlatformSelectorModalProps> = ({
                 <AlertCircle className="w-3 h-3" />
                 <span>{vinError}</span>
               </p>
+            )}
+            {vinWarning && (
+              <p className="text-[11px] text-amber-400 mt-2 leading-relaxed">{vinWarning}</p>
             )}
           </div>
 

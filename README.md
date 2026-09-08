@@ -57,6 +57,7 @@ Or paste each file into the dashboard's **SQL Editor** and run it, in order:
 
 1. `supabase/migrations/20260909000001_admin.sql`
 2. `supabase/migrations/20260909000002_scrape_report.sql`
+3. `supabase/migrations/20260909000003_vehicles.sql`
 
 ### 3. Register the one administrator
 
@@ -77,25 +78,70 @@ closed".
 ### 4. Verify the gate
 
 Insert a test row through the SQL Editor first, so an empty result proves RLS is
-filtering rather than proving the table is empty:
-
-```sql
-insert into scrape_runs (started_at, trigger, request_limit) values (now(), 'manual', 200);
-```
-
-Then query as an anonymous client:
+filtering rather than proving the tables are empty. Then, with only the anon key
+and no session:
 
 ```bash
-curl "$VITE_SUPABASE_URL/rest/v1/scrape_runs?select=*" \
-  -H "apikey: $VITE_SUPABASE_ANON_KEY"
-# expected: []
+for t in scrape_runs scrape_events vehicles vehicle_ownerships vehicle_events title_reports; do
+  echo -n "$t: "
+  curl -s "$VITE_SUPABASE_URL/rest/v1/$t?select=*" -H "apikey: $VITE_SUPABASE_ANON_KEY"
+  echo
+done
+# every line must return []
+```
 
-curl "$VITE_SUPABASE_URL/rest/v1/scrape_events?select=*" \
-  -H "apikey: $VITE_SUPABASE_ANON_KEY"
-# expected: []
+Two further checks, in the SQL Editor:
+
+```sql
+-- every table must report rowsecurity = true
+select tablename, rowsecurity from pg_tables where schemaname = 'public';
+
+-- every security definer function must show search_path=""
+select proname, proconfig from pg_proc
+ where prosecdef and pronamespace = 'public'::regnamespace;
 ```
 
 Signed in as the administrator, `/admin` shows the same rows.
+
+## Vehicle data model
+
+Schema only in this build — no UI, no claim or transfer flows.
+
+The vehicle is the root entity and ownership is a time-bounded edge:
+`vehicle_ownerships` carries `started_on` / `ended_on`, and records attach to
+`vehicle_id` while being attributed to an ownership period. That is what lets
+history follow a car through a sale without a later migration. Events marked
+`transferable` follow the car; `private` ones stay with the ownership period
+that wrote them.
+
+`vehicle_events` is append-only. There is no UPDATE or DELETE policy, and a
+trigger raises on both — so even a future service-role job cannot quietly
+rewrite history. Corrections are new rows referencing `supersedes_id`.
+
+An odometer reading lower than the previous one is **stored and flagged**
+(`vehicle_events.odometer_rollback`), never refused. A rollback is a typo, a
+cluster swap, or fraud, and all three are worth keeping.
+
+`title_reports` is deliberately a separate table: official attestations and
+self-reported records must never share one.
+
+### VIN handling
+
+A VIN ties to registration, title and insurance records, so it is treated as
+personal data. Nothing logs a VIN, no error message echoes one back, and there
+is no lookup-by-VIN path for anyone but a verified current owner — including no
+existence check, which would leak enumeration. The unique index on
+`vehicles.vin` is for integrity, not lookup.
+
+`src/lib/vin.ts` normalises, rejects anything that is not 17 characters or that
+contains I, O or Q, and computes the ISO 3779 check digit. **A failed check
+digit is a warning, not a rejection** — some grey-market and non-US-market
+vehicles legitimately fail it, and refusing those would lock real owners out of
+their own cars. The result is stored on `vehicles.vin_check_ok`.
+
+```bash
+bun test        # VIN validator tests
+```
 
 ### Deploying
 

@@ -25,7 +25,9 @@ export const AdminLogin: React.FC = () => {
         password,
       });
       if (signInError) {
-        setError(signInError.message);
+        // One message for every cause. "No such account" versus "wrong
+        // password" tells an attacker which emails are registered.
+        setError('Sign in failed. Check the email and password and try again.');
         return;
       }
       navigate('/admin', { replace: true });

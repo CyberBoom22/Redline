@@ -17,7 +17,8 @@
     "scrape:test": "tsx scripts/scraper/selftest.ts",
     "scrape:report": "tsx scripts/scraper/cli.ts report",
     "scrape:e2e": "tsx scripts/scraper/e2e.ts",
-    "scrape:push": "tsx scripts/scraper/cli.ts push"
+    "scrape:push": "tsx scripts/scraper/cli.ts push",
+    "test": "bun test"
   },
   "dependencies": {
     "@google/genai": "^2.4.0",
@@ -39,6 +40,7 @@
     "@types/express": "^4.17.21",
     "@types/node": "^22.14.0",
     "autoprefixer": "^10.4.21",
+    "bun-types": "^1.4.2",
     "esbuild": "^0.25.0",
     "tailwindcss": "^4.1.14",
     "tsx": "^4.21.0",
