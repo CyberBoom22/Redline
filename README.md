@@ -58,6 +58,8 @@ Or paste each file into the dashboard's **SQL Editor** and run it, in order:
 1. `supabase/migrations/20260909000001_admin.sql`
 2. `supabase/migrations/20260909000002_scrape_report.sql`
 3. `supabase/migrations/20260909000003_vehicles.sql`
+4. `supabase/migrations/20260909000004_revoke_trigger_function_execute.sql`
+5. `supabase/migrations/20260909000005_append_only_truncate_guard.sql`
 
 ### 3. Register the one administrator
 
@@ -114,9 +116,16 @@ history follow a car through a sale without a later migration. Events marked
 `transferable` follow the car; `private` ones stay with the ownership period
 that wrote them.
 
-`vehicle_events` is append-only. There is no UPDATE or DELETE policy, and a
-trigger raises on both — so even a future service-role job cannot quietly
-rewrite history. Corrections are new rows referencing `supersedes_id`.
+`vehicle_events` is append-only. There is no UPDATE or DELETE policy, and
+triggers raise on UPDATE, DELETE **and TRUNCATE** — the last one matters because
+TRUNCATE does not fire row-level triggers, so without a statement-level guard
+the table could be emptied by a single statement. Corrections are new rows
+referencing `supersedes_id`.
+
+That also means test fixtures cannot be deleted normally. If you need to clear
+the table during development, drop `vehicle_events_no_truncate` deliberately,
+truncate, and recreate it — the point is that discarding history is a visible
+act rather than an accident.
 
 An odometer reading lower than the previous one is **stored and flagged**
 (`vehicle_events.odometer_rollback`), never refused. A rollback is a typo, a
