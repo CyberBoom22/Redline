@@ -93,7 +93,7 @@ console.log('Seeding local database…');
 // --command has a length limit well under this payload, so go through a file.
 const seedFile = new URL('./seed.generated.sql', import.meta.url);
 writeFileSync(seedFile, statements.join('\n'));
-execSync('npx wrangler d1 execute redline-catalog --local --file test/seed.generated.sql', {
+execSync('npx wrangler d1 execute stage0-catalog --local --file test/seed.generated.sql', {
   stdio: ['ignore', 'ignore', 'inherit'],
 });
 

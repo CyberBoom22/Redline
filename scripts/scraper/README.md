@@ -127,7 +127,7 @@ assumes where it ends up.
 `npm run scrape:push` posts the latest report — and the catalog snapshot — to
 the Cloudflare Worker in `worker/`, which stores it in D1 and serves a private
 dashboard behind Cloudflare Access. The daily workflow runs this automatically
-once `REDLINE_DASHBOARD_URL` and `REDLINE_INGEST_SECRET` are configured, and
+once `STAGE0_DASHBOARD_URL` and `STAGE0_INGEST_SECRET` are configured, and
 skips it silently when they are not. Setup lives in `worker/README.md`.
 
 CI holds only a single-purpose ingest secret, not a Cloudflare API token — the

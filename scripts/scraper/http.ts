@@ -3,7 +3,7 @@ import { RobotsRules, isAllowed, parseRobots } from './robots';
 import { QueueEntry, VendorConfig } from './types';
 
 export const USER_AGENT =
-  'RedlineCatalogBot/1.0 (+https://github.com/CyberBoom22/Redline; daily parts-catalog sync; contact via repo issues)';
+  'Stage0CatalogBot/1.0 (+https://github.com/CyberBoom22/Redline; daily parts-catalog sync; contact via repo issues)';
 
 export interface FetchOutcome {
   status: number;

@@ -76,7 +76,7 @@ export interface CatalogPart {
   imageUrl: string | null;
   description: string | null;
   vendorCategory: string | null;
-  /** Best-effort map onto Redline's own taxonomy. */
+  /** Best-effort map onto Stage0's own taxonomy. */
   category: PartCategory | null;
   /** Engines this part appears to fit, derived from page text. */
   engineIds: EngineId[];

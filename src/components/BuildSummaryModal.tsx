@@ -47,8 +47,8 @@ export const BuildSummaryModal: React.FC<BuildSummaryModalProps> = ({
   const handleShare = () => {
     if (navigator.share) {
       navigator.share({
-        title: `Redline Build Card - ${vehicle.trim}`,
-        text: `Check out my ${vehicle.trim} build summary on Redline: ${projectedWhp} WHP projected / ${goalWhp} WHP goal!`,
+        title: `Stage0 Build Card - ${vehicle.trim}`,
+        text: `Check out my ${vehicle.trim} build summary on Stage0: ${projectedWhp} WHP projected / ${goalWhp} WHP goal!`,
         url: window.location.href
       }).catch(() => {});
     } else {
@@ -65,7 +65,7 @@ export const BuildSummaryModal: React.FC<BuildSummaryModalProps> = ({
           <div className="flex items-center gap-2">
             <Gauge className="w-5 h-5 text-red-500" />
             <h2 className="text-base font-bold font-mono text-white uppercase tracking-wider">
-              Redline Build Card — The Group Chat Screenshot Screen
+              Stage0 Build Card — The Group Chat Screenshot Screen
             </h2>
           </div>
           <div className="flex items-center gap-2">
@@ -99,7 +99,7 @@ export const BuildSummaryModal: React.FC<BuildSummaryModalProps> = ({
             <div>
               <div className="flex items-center gap-2">
                 <span className="text-2xl font-black font-mono tracking-wider text-red-500 uppercase">
-                  REDLINE
+                  STAGE0
                 </span>
                 <span className="text-xs text-slate-400 font-mono">BUILD SUMMARY</span>
               </div>

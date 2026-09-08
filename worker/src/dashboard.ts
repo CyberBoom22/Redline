@@ -1,7 +1,7 @@
 /**
  * The dashboard page. Vanilla HTML/CSS/JS served inline by the Worker — no
  * build step and no CDN, so the page loads even when everything else is down.
- * Styled to match the Redline app: slate-950 ground, red accents, mono labels.
+ * Styled to match the Stage0 app: slate-950 ground, red accents, mono labels.
  *
  * The page renders scraped, third-party-controlled strings. Every value goes
  * through `esc()` before it reaches markup, and every URL goes through
@@ -12,7 +12,7 @@ export function dashboardHtml(nonce: string): string {
   return `<!doctype html>
 <html lang="en"><head>
 <meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
-<title>Redline · Scan Reports</title>
+<title>Stage0 · Scan Reports</title>
 <style>
   :root {
     --bg:#020617; --panel:#0f172a; --panel-2:#1e293b; --line:#1e293b;

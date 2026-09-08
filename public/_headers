@@ -1,0 +1,24 @@
+# Response headers for the Stage0 public app.
+#
+# The admin area's real gate is Row Level Security in Postgres; these harden the
+# delivery of the page itself. Kept in `public/` so Vite copies it into dist/
+# and Cloudflare applies it on deploy.
+
+/*
+  X-Content-Type-Options: nosniff
+  X-Frame-Options: DENY
+  Referrer-Policy: strict-origin-when-cross-origin
+  Strict-Transport-Security: max-age=31536000; includeSubDomains
+  Permissions-Policy: geolocation=(), microphone=(), camera=(), payment=(), usb=()
+  Cross-Origin-Opener-Policy: same-origin
+  # style-src keeps 'unsafe-inline' because Recharts sets inline style
+  # attributes at runtime; script-src does not, so no injected script runs.
+  # connect-src is limited to Supabase — the only origin the app talks to.
+  Content-Security-Policy: default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data: https:; font-src 'self' data:; connect-src 'self' https://*.supabase.co wss://*.supabase.co; base-uri 'none'; form-action 'self'; frame-ancestors 'none'; object-src 'none'
+
+# Hashed build assets are immutable; the shell must never be cached stale.
+/assets/*
+  Cache-Control: public, max-age=31536000, immutable
+
+/index.html
+  Cache-Control: no-cache

@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { Link } from 'react-router-dom';
 import { VehicleSelection, UserFlowDoor, UserIntent } from './types';
 import { PLATFORMS, DEFAULT_VEHICLE } from './data/platforms';
 import { getPartsForEngine } from './data/parts';
@@ -208,7 +209,19 @@ export default function App() {
             <strong>THE DISCLAIMER:</strong> All build paths are calculated from a stock vehicle. Checking off mods you already have only marks your place on that path — it doesn't change the path, recalculate for your specific car, or account for its condition, history, or mileage. You'll still see every step and every precaution, whether you've done it or not. This is reference information, not advice for your individual vehicle.
           </p>
           <p className="text-[10px] text-slate-600 pt-2">
-            REDLINE v0.2 · BMW B58 & Infiniti VQ/VR Pilot Edition · Confidential Reference Information
+            STAGE0 v0.2 · BMW B58 & Infiniti VQ/VR Pilot Edition · Confidential Reference Information
+          </p>
+          {/* Operator entry point. Deliberately plain: hiding the URL is not a
+              control, and pretending otherwise invites treating it as one. The
+              gate is Row Level Security, which returns nothing to anyone who is
+              not the administrator, whether or not they find this link. */}
+          <p className="pt-1">
+            <Link
+              to="/admin/login"
+              className="text-[10px] text-slate-700 hover:text-slate-500 font-mono uppercase tracking-widest transition-colors"
+            >
+              Operator sign in
+            </Link>
           </p>
         </div>
       </footer>

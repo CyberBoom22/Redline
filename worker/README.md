@@ -1,4 +1,4 @@
-# Redline scan dashboard
+# Stage0 scan dashboard
 
 A private admin dashboard for the daily parts scan: what was scanned, what was
 added, what changed field by field, and what disappeared. Cloudflare Worker +
@@ -8,15 +8,15 @@ Nothing here is public. Access sits in front of the whole hostname, so a viewer
 is authenticated before the Worker runs; the Worker reads the verified identity
 from `Cf-Access-Authenticated-User-Email`.
 
-Deployed at **https://redline.xavierboone.us**.
+Deployed at **https://stage0.us**.
 
 ## What's already done
 
-- D1 database **`redline-catalog`** is created (`8d625631-ff7d-4ddf-bf16-f3875a4f8e8c`)
+- D1 database **`stage0-catalog`** is created (`8d625631-ff7d-4ddf-bf16-f3875a4f8e8c`)
   and its schema is applied to the remote database.
 - The Worker, dashboard, ingest endpoint and push script are written and tested
   end to end against a local D1.
-- `wrangler.toml` already carries the `redline.xavierboone.us` custom-domain
+- `wrangler.toml` already carries the `stage0.us` custom-domain
   route, so `wrangler deploy` creates the DNS record itself.
 
 ## Security posture
@@ -60,7 +60,7 @@ npm run deploy
 ```
 
 Generate the secret with `openssl rand -hex 32`. Deploy attaches the custom domain from `wrangler.toml`, so the dashboard comes
-up at `https://redline.xavierboone.us` (the `xavierboone.us` zone has to be in
+up at `https://stage0.us` (the `xavierboone.us` zone has to be in
 this Cloudflare account).
 
 ### 2. Put Cloudflare Access in front of it
@@ -68,7 +68,7 @@ this Cloudflare account).
 In the Cloudflare dashboard → **Zero Trust → Access → Applications → Add a
 self-hosted application**:
 
-- **Domain**: `redline.xavierboone.us`.
+- **Domain**: `stage0.us`.
 - **Policy**: *Allow* → include **Emails** → your address (add teammates here).
 - Free for up to 50 users. Login options include Google, GitHub and a one-time
   email code, so there is no password to manage.
@@ -96,15 +96,15 @@ ACCESS_AUD = "<the AUD tag>"
 ```
 
 Until these are set the dashboard returns 503 by design. Confirm with
-`curl -s -o /dev/null -w '%{http_code}' https://redline.xavierboone.us/api/summary`
+`curl -s -o /dev/null -w '%{http_code}' https://stage0.us/api/summary`
 — an unauthenticated request must return 401 or 403, never 200.
 
 ### 3. Point the daily scan at it
 
 In the GitHub repo → **Settings → Secrets and variables → Actions**:
 
-- **Variable** `REDLINE_DASHBOARD_URL` = `https://redline.xavierboone.us`.
-- **Secret** `REDLINE_INGEST_SECRET` = the same string you gave `wrangler secret put`.
+- **Variable** `STAGE0_DASHBOARD_URL` = `https://stage0.us`.
+- **Secret** `STAGE0_INGEST_SECRET` = the same string you gave `wrangler secret put`.
 
 That's it. The scan workflow already has the push step, and it skips itself
 when the variable is unset — so nothing breaks if you defer this.
@@ -122,7 +122,7 @@ Then open the Worker URL. You should be asked to log in, then see the scan.
 
 ```bash
 cd worker
-npx wrangler d1 execute redline-catalog --local --file schema.sql
+npx wrangler d1 execute stage0-catalog --local --file schema.sql
 npx wrangler dev --local --var INGEST_SECRET:test-secret
 ```
 

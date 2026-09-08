@@ -35,7 +35,7 @@ export const Header: React.FC<HeaderProps> = ({
             <div>
               <div className="flex items-center gap-2">
                 <span className="font-extrabold text-2xl tracking-wider text-white font-mono uppercase bg-gradient-to-r from-white via-slate-200 to-slate-400 bg-clip-text text-transparent">
-                  REDLINE
+                  STAGE0
                 </span>
                 <span className="text-[10px] font-semibold px-2 py-0.5 rounded bg-red-950/80 text-red-400 border border-red-800/60 uppercase tracking-widest">
                   v0.2

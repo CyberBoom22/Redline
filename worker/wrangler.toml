@@ -1,4 +1,4 @@
-name = "redline-dashboard"
+name = "stage0-dashboard"
 main = "src/index.ts"
 compatibility_date = "2025-07-18"
 
@@ -9,12 +9,12 @@ enabled = true
 # wrangler create and manage the DNS record, so no manual CNAME is needed —
 # the zone xavierboone.us just has to be in this Cloudflare account.
 [[routes]]
-pattern = "redline.xavierboone.us"
+pattern = "stage0.us"
 custom_domain = true
 
 [[d1_databases]]
 binding = "DB"
-database_name = "redline-catalog"
+database_name = "stage0-catalog"
 database_id = "8d625631-ff7d-4ddf-bf16-f3875a4f8e8c"
 
 [vars]

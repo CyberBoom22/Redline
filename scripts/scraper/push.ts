@@ -23,11 +23,11 @@ export interface PushOptions {
 
 export async function push(options: PushOptions = {}): Promise<void> {
   const log = options.log ?? ((m: string) => console.log(m));
-  const base = (options.url ?? process.env.REDLINE_DASHBOARD_URL ?? '').replace(/\/+$/, '');
-  const secret = options.secret ?? process.env.REDLINE_INGEST_SECRET ?? '';
+  const base = (options.url ?? process.env.STAGE0_DASHBOARD_URL ?? '').replace(/\/+$/, '');
+  const secret = options.secret ?? process.env.STAGE0_INGEST_SECRET ?? '';
 
-  if (!base) throw new Error('Set REDLINE_DASHBOARD_URL (or pass --url=) to the deployed Worker origin');
-  if (!secret) throw new Error('Set REDLINE_INGEST_SECRET (or pass --secret=) to the Worker ingest secret');
+  if (!base) throw new Error('Set STAGE0_DASHBOARD_URL (or pass --url=) to the deployed Worker origin');
+  if (!secret) throw new Error('Set STAGE0_INGEST_SECRET (or pass --secret=) to the Worker ingest secret');
 
   // The secret travels in a header, so the transport has to be encrypted.
   // localhost is exempt so `npm run preview` can be tested without TLS.
@@ -37,7 +37,7 @@ export async function push(options: PushOptions = {}): Promise<void> {
     throw new Error(`Refusing to send the ingest secret over ${parsed.protocol}// — use https`);
   }
   if (secret.length < 24) {
-    throw new Error('REDLINE_INGEST_SECRET is too short — use at least 24 characters (openssl rand -hex 32)');
+    throw new Error('STAGE0_INGEST_SECRET is too short — use at least 24 characters (openssl rand -hex 32)');
   }
 
   const report = await readReport(options.runId);

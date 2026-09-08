@@ -78,7 +78,7 @@ jobs:
         working-directory: worker
         run: |
           npm install
-          npx wrangler d1 execute redline-catalog --local --file schema.sql
+          npx wrangler d1 execute stage0-catalog --local --file schema.sql
           npm run test:security
 
       - name: Scrape
@@ -100,10 +100,10 @@ jobs:
       # Ships the report to the D1-backed dashboard. Skipped automatically when
       # the variable is not configured, so the scrape still succeeds without it.
       - name: Push report to dashboard
-        if: vars.REDLINE_DASHBOARD_URL != ''
+        if: vars.STAGE0_DASHBOARD_URL != ''
         env:
-          REDLINE_DASHBOARD_URL: ${{ vars.REDLINE_DASHBOARD_URL }}
-          REDLINE_INGEST_SECRET: ${{ secrets.REDLINE_INGEST_SECRET }}
+          STAGE0_DASHBOARD_URL: ${{ vars.STAGE0_DASHBOARD_URL }}
+          STAGE0_INGEST_SECRET: ${{ secrets.STAGE0_INGEST_SECRET }}
         run: bun run scrape:push
 
       - name: Commit catalog changes

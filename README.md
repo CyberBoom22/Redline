@@ -1,4 +1,4 @@
-# Redline
+# Stage0
 
 The honest build planner for forced-induction platforms — BMW B58 and Infiniti
 VQ/VR. Build path calculation, parts catalog, tiered risk warnings, dyno
@@ -154,9 +154,28 @@ bun test        # VIN validator tests
 
 ### Deploying
 
-`/admin` and `/admin/login` are client-side routes, so the host must serve
-`index.html` for unmatched paths. Without that SPA fallback a hard refresh on
-`/admin` returns 404 from the static host before React ever loads.
+The root `wrangler.toml` deploys the built SPA to **stage0.us** as an
+assets-only Worker:
+
+```bash
+bun run build
+npx wrangler deploy
+```
+
+`not_found_handling = "single-page-application"` is what makes `/admin` and
+`/admin/login` survive a hard refresh — without it the static host returns 404
+before React ever loads. `public/_headers` carries the CSP and the other
+response headers, and Vite copies it into `dist/` on build.
+
+### Signing in as the operator
+
+The public app links to `/admin/login` from the footer. Hiding that URL would
+not be a control, so it is not treated as one — the gate is Row Level Security,
+which returns nothing to anyone who is not the administrator.
+
+The login page links on to `/admin/register` **only while the admin slot is
+unclaimed**. Once `claim_admin()` has run the link disappears permanently, and
+the registration page itself renders "Registration is closed".
 
 ### What writes the report tables
 

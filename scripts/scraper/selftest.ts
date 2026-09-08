@@ -26,7 +26,7 @@ const tests: { name: string; fn: () => void | Promise<void> }[] = [];
 check('robots: disallow blocks, longer allow wins', () => {
   const rules = parseRobots(
     ['User-agent: *', 'Disallow: /checkout', 'Disallow: /search', 'Allow: /search/parts', 'Crawl-delay: 10'].join('\n'),
-    'RedlineCatalogBot/1.0',
+    'Stage0CatalogBot/1.0',
   );
   assert.equal(rules.crawlDelayMs, 10_000);
   assert.equal(isAllowed(rules, 'https://x.test/products/abc'), true);
@@ -37,15 +37,15 @@ check('robots: disallow blocks, longer allow wins', () => {
 
 check('robots: a named group overrides the wildcard group', () => {
   const rules = parseRobots(
-    ['User-agent: *', 'Disallow: /', '', 'User-agent: RedlineCatalogBot', 'Disallow: /admin'].join('\n'),
-    'RedlineCatalogBot/1.0 (+repo)',
+    ['User-agent: *', 'Disallow: /', '', 'User-agent: Stage0CatalogBot', 'Disallow: /admin'].join('\n'),
+    'Stage0CatalogBot/1.0 (+repo)',
   );
   assert.equal(isAllowed(rules, 'https://x.test/products/abc'), true);
   assert.equal(isAllowed(rules, 'https://x.test/admin/x'), false);
 });
 
 check('robots: wildcards and end-anchors in patterns', () => {
-  const rules = parseRobots(['User-agent: *', 'Disallow: /*.pdf$', 'Disallow: /a/*/b'].join('\n'), 'RedlineCatalogBot');
+  const rules = parseRobots(['User-agent: *', 'Disallow: /*.pdf$', 'Disallow: /a/*/b'].join('\n'), 'Stage0CatalogBot');
   assert.equal(isAllowed(rules, 'https://x.test/manual.pdf'), false);
   assert.equal(isAllowed(rules, 'https://x.test/manual.pdf?x=1'), true);
   assert.equal(isAllowed(rules, 'https://x.test/a/zzz/b'), false);
@@ -176,7 +176,7 @@ check('fitment: unrelated text matches nothing', () => {
   assert.deepEqual(matchEngines(null, undefined, ''), []);
 });
 
-check('fitment: categories map onto the Redline taxonomy', () => {
+check('fitment: categories map onto the Stage0 taxonomy', () => {
   assert.equal(matchCategory('bootmod3 Flash Tune'), 'tune');
   assert.equal(matchCategory('Catless Downpipe'), 'downpipe');
   assert.equal(matchCategory('Wagner Competition Intercooler'), 'chargepipe_intercooler');
@@ -311,7 +311,7 @@ check('state: queue and catalog survive a save/load round-trip', async () => {
 });
 
 async function tmpdir(): Promise<string> {
-  return fs.mkdtemp(path.join(os.tmpdir(), 'redline-scraper-'));
+  return fs.mkdtemp(path.join(os.tmpdir(), 'stage0-scraper-'));
 }
 
 (async () => {

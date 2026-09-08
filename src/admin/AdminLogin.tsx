@@ -1,7 +1,7 @@
-import React, { useState } from 'react';
-import { Navigate, useNavigate } from 'react-router-dom';
+import React, { useEffect, useState } from 'react';
+import { Link, Navigate, useNavigate } from 'react-router-dom';
 import { Gauge, Loader2, LogIn, ShieldAlert } from 'lucide-react';
-import { requireSupabase } from '../lib/supabase';
+import { requireSupabase, supabase } from '../lib/supabase';
 import { useAuth } from './AuthProvider';
 import { AdminShell } from './AdminShell';
 
@@ -12,6 +12,21 @@ export const AdminLogin: React.FC = () => {
   const [password, setPassword] = useState('');
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
+  // The registration link appears only while the single admin slot is unclaimed,
+  // so first-time setup is findable and the path disappears permanently after.
+  // admin_exists() returns a boolean and nothing else -- it cannot reveal who
+  // the administrator is.
+  const [slotOpen, setSlotOpen] = useState(false);
+
+  useEffect(() => {
+    if (!supabase) return;
+    let cancelled = false;
+    supabase.rpc('admin_exists').then(({ data, error: rpcError }) => {
+      // Fail closed: an unreachable database must not advertise registration.
+      if (!cancelled) setSlotOpen(!rpcError && data === false);
+    });
+    return () => { cancelled = true; };
+  }, []);
 
   if (!loading && session && isAdmin) return <Navigate to="/admin" replace />;
 
@@ -47,7 +62,7 @@ export const AdminLogin: React.FC = () => {
           </div>
           <div>
             <div className="font-mono font-bold text-sm uppercase tracking-wider text-white">
-              Redline Operations
+              Stage0 Operations
             </div>
             <p className="text-xs text-slate-400">Scrape reporting — administrator only</p>
           </div>
@@ -92,6 +107,17 @@ export const AdminLogin: React.FC = () => {
           {busy ? <Loader2 className="w-4 h-4 animate-spin" /> : <LogIn className="w-4 h-4" />}
           {busy ? 'Signing in' : 'Sign in'}
         </button>
+
+        {slotOpen && (
+          <p className="text-center pt-1">
+            <Link
+              to="/admin/register"
+              className="text-[11px] font-mono uppercase tracking-widest text-slate-500 hover:text-red-400 transition-colors"
+            >
+              Set up the administrator account
+            </Link>
+          </p>
+        )}
       </form>
     </AdminShell>
   );

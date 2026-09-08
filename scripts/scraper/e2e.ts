@@ -12,10 +12,10 @@ import http from 'node:http';
 import os from 'node:os';
 import path from 'node:path';
 
-const dataDir = await fs.mkdtemp(path.join(os.tmpdir(), 'redline-e2e-'));
-process.env.REDLINE_DATA_DIR = dataDir;
+const dataDir = await fs.mkdtemp(path.join(os.tmpdir(), 'stage0-e2e-'));
+process.env.STAGE0_DATA_DIR = dataDir;
 
-// Imported after REDLINE_DATA_DIR is set, so the modules pick it up.
+// Imported after STAGE0_DATA_DIR is set, so the modules pick it up.
 const { VENDORS } = await import('./config');
 const { run } = await import('./run');
 const { readReport, formatReport } = await import('./report');

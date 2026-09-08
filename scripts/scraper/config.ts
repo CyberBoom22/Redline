@@ -14,7 +14,7 @@ import { VendorConfig } from './types';
  */
 
 /** Overridable so the end-to-end test can run against a scratch directory. */
-export const DATA_DIR = process.env.REDLINE_DATA_DIR ?? 'data/catalog';
+export const DATA_DIR = process.env.STAGE0_DATA_DIR ?? 'data/catalog';
 
 export const VENDORS: VendorConfig[] = [
   {

@@ -1,5 +1,5 @@
 /**
- * Redline catalog dashboard.
+ * Stage0 catalog dashboard.
  *
  * Serves the admin report UI and its JSON API from D1.
  *

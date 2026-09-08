@@ -1,7 +1,7 @@
--- Redline catalog dashboard — D1 schema.
+-- Stage0 catalog dashboard — D1 schema.
 --
 -- Written by the daily scan (POST /api/ingest) and read by the dashboard.
--- Apply with:  npx wrangler d1 execute redline-catalog --remote --file worker/schema.sql
+-- Apply with:  npx wrangler d1 execute stage0-catalog --remote --file worker/schema.sql
 
 -- One row per scan.
 CREATE TABLE IF NOT EXISTS runs (
