@@ -1,1 +1,75 @@
 @import "tailwindcss";
+
+/**
+ * Build Card print layout.
+ *
+ * "Print / PDF" previously called window.print() with no print rules at all,
+ * so the browser printed the whole application — planner behind the overlay
+ * included — across several sheets. Worse, browsers drop background graphics
+ * by default, so the card's light text on a dark panel printed white on white.
+ *
+ * These rules isolate the card, force printable ink, and keep it to one sheet.
+ */
+@media print {
+  @page {
+    size: portrait;
+    margin: 12mm;
+  }
+
+  /* Isolate the card. `visibility` rather than `display` so the card keeps its
+     place in the layout tree and does not collapse. */
+  body * {
+    visibility: hidden !important;
+  }
+  #build-card,
+  #build-card * {
+    visibility: visible !important;
+  }
+
+  #build-card {
+    position: absolute !important;
+    left: 0;
+    top: 0;
+    width: 100%;
+    padding: 0 !important;
+    /* Fits one sheet at typical card length; the browser still reflows if a
+       build has an unusually long parts list. */
+    font-size: 9.5pt;
+  }
+
+  /* Backgrounds are omitted from print by default, so anything relying on a
+     dark panel for contrast has to be re-inked. */
+  #build-card,
+  #build-card * {
+    background: transparent !important;
+    color: #0f172a !important;
+    border-color: #cbd5e1 !important;
+    box-shadow: none !important;
+  }
+  /* Keep the accent that carries meaning — power figures and warnings. */
+  #build-card .text-red-500,
+  #build-card .text-red-400,
+  #build-card .text-red-300 {
+    color: #b91c1c !important;
+  }
+  #build-card .text-emerald-400,
+  #build-card .text-emerald-300 {
+    color: #15803d !important;
+  }
+  #build-card .text-amber-400,
+  #build-card .text-amber-300 {
+    color: #a16207 !important;
+  }
+
+  /* Do not split a metric tile or a warning across two sheets. */
+  #build-card > div,
+  #build-card section {
+    break-inside: avoid;
+  }
+
+  /* The overlay's scroll cap is a screen concern; printing needs full height. */
+  #build-card {
+    max-height: none !important;
+    overflow: visible !important;
+  }
+}

@@ -3,6 +3,7 @@ import { EngineId, Part, TieredWarning } from '../../types';
 import { ALL_PARTS } from '../../data/parts';
 import { ALL_WARNINGS } from '../../data/warnings';
 import { Layers, X, Gauge, AlertOctagon, DollarSign, ArrowRight, Check } from 'lucide-react';
+import { Modal } from '../ui/Modal';
 
 interface CompareSliderProps {
   isOpen: boolean;
@@ -46,9 +47,12 @@ export const CompareSlider: React.FC<CompareSliderProps> = ({
   const buildB = getBuildDetails(powerB);
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/85 backdrop-blur-md p-4 overflow-y-auto">
-      <div className="bg-slate-900 border border-slate-800 rounded-2xl w-full max-w-5xl shadow-2xl text-slate-100 overflow-hidden my-6">
-        {/* Modal Header */}
+    <Modal
+      isOpen={isOpen}
+      onClose={onClose}
+      maxWidth="max-w-5xl"
+      backdropClassName="bg-slate-950/85"
+      header={
         <div className="flex items-center justify-between px-6 py-4 border-b border-slate-800 bg-slate-950">
           <div className="flex items-center gap-2.5">
             <Layers className="w-5 h-5 text-red-500" />
@@ -68,9 +72,25 @@ export const CompareSlider: React.FC<CompareSliderProps> = ({
             <X className="w-5 h-5" />
           </button>
         </div>
-
-        {/* Side-By-Side Grid */}
-        <div className="p-6 grid grid-cols-1 md:grid-cols-2 gap-6 max-h-[75vh] overflow-y-auto">
+      }
+      footer={
+        <div className="px-6 py-4 border-t border-slate-800 bg-slate-950 flex justify-between items-center text-xs">
+          <div className="text-slate-400">
+            Cost delta: <span className="font-mono font-bold text-white">${Math.abs(buildB.allInCost - buildA.allInCost)}</span> for <span className="font-mono font-bold text-red-400">{Math.abs(powerB - powerA)} WHP</span> difference.
+          </div>
+          <button
+            onClick={onClose}
+            className="px-5 py-2 bg-slate-800 hover:bg-slate-700 text-slate-200 font-semibold rounded-xl transition-all"
+          >
+            Close Comparison
+          </button>
+        </div>
+      }
+    >
+      {/* Side-By-Side Grid. The shell caps the panel height and scrolls this
+          body, so no local max-h belongs here — two nested scroll containers
+          would fight each other. */}
+      <div className="p-6 grid grid-cols-1 md:grid-cols-2 gap-6">
           {/* Plan A Column */}
           <div className="bg-slate-950 border border-slate-800 rounded-xl p-5 space-y-5 flex flex-col justify-between">
             <div className="space-y-4">
@@ -212,21 +232,7 @@ export const CompareSlider: React.FC<CompareSliderProps> = ({
               </div>
             </div>
           </div>
-        </div>
-
-        {/* Modal Footer */}
-        <div className="px-6 py-4 border-t border-slate-800 bg-slate-950 flex justify-between items-center text-xs">
-          <div className="text-slate-400">
-            Cost delta: <span className="font-mono font-bold text-white">${Math.abs(buildB.allInCost - buildA.allInCost)}</span> for <span className="font-mono font-bold text-red-400">{Math.abs(powerB - powerA)} WHP</span> difference.
-          </div>
-          <button
-            onClick={onClose}
-            className="px-5 py-2 bg-slate-800 hover:bg-slate-700 text-slate-200 font-semibold rounded-xl transition-all"
-          >
-            Close Comparison
-          </button>
-        </div>
       </div>
-    </div>
+    </Modal>
   );
 };
