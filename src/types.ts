@@ -63,7 +63,8 @@ export interface TieredWarning {
   preventiveCost: number;
   failureCost: number;
   evidenceSource: string;
-  evidenceUrl: string;
+  /** Optional: some warnings cite a source that has no stable public URL. */
+  evidenceUrl?: string;
   requiredPartId?: string;
   acknowledged?: boolean;
 }
