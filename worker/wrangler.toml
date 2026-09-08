@@ -5,12 +5,14 @@ compatibility_date = "2025-07-18"
 [observability]
 enabled = true
 
-# The dashboard lives on its own subdomain. `custom_domain = true` makes
-# wrangler create and manage the DNS record, so no manual CNAME is needed —
-# the zone xavierboone.us just has to be in this Cloudflare account.
-[[routes]]
-pattern = "stage0.us"
-custom_domain = true
+# SUPERSEDED. This Worker was the D1-backed admin dashboard from before the
+# Supabase build; the admin report now lives inside the SPA and reads Supabase
+# directly. It is kept only so nothing references a missing directory.
+#
+# It deliberately claims NO route. The rebrand rewrote its old hostname to
+# stage0.us, which would have made `wrangler deploy` from this directory take
+# the domain away from the public app. If this is ever deployed again, give it
+# its own hostname -- never the app's.
 
 [[d1_databases]]
 binding = "DB"
