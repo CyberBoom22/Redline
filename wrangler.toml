@@ -11,11 +11,12 @@
 #
 #   bun run deploy:preview
 #
-# stage0.us is LIVE and reserved for production. Nothing in this file claims
-# it, deliberately — a `custom_domain` route would attach the apex to this
-# Worker on deploy and take over whatever is serving it now. The production
-# block is written out at the bottom, commented, ready to enable when the
-# cutover is intended.
+# stage0.us is LIVE — it already serves this same application, deployed as a
+# separate Worker outside this config. Nothing here claims the apex,
+# deliberately: a `custom_domain` route attaches the hostname on deploy, so an
+# accidental production deploy would replace the running site. The production
+# block is written out at the bottom, commented, ready for a deliberate
+# cutover.
 #
 # ── Do not run a bare `wrangler deploy` ─────────────────────────────────────
 # Without `--env`, Wrangler deploys the *top-level* config as a third Worker
@@ -26,7 +27,12 @@
 # VITE_* variables are inlined at build time, so each environment is built
 # against its own .env file before it is deployed.
 
-name = "stage0"
+# Base name only — this config is never deployed without `--env`.
+#
+# Deliberately NOT "stage0": a Worker by that name already exists and serves
+# the live site. Sharing the name would mean a bare `wrangler deploy` writes
+# straight to production, which is the worst possible outcome of a slip.
+name = "stage0-app"
 compatibility_date = "2026-09-08"
 
 # Each environment is reachable at exactly one hostname. Leaving the
@@ -45,6 +51,9 @@ enabled = true
 # Deploys as `stage0-preview`.
 
 [env.preview]
+# Named explicitly rather than derived from the base name, so the hostname and
+# the Worker keep matching names whatever the base is called.
+name = "stage0-preview"
 workers_dev = false
 
 [env.preview.assets]

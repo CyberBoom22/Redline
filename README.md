@@ -159,12 +159,16 @@ bun test        # VIN validator tests
 | pre-production | `stage0-preview` | `test.stage0.us` | `bun run deploy:preview` |
 | production | — | `stage0.us` | not enabled |
 
-**`stage0.us` is live and reserved for a future production cutover.** Nothing
-in `wrangler.toml` claims it, deliberately: a `custom_domain` route attaches
-the hostname to the Worker on deploy, which would take the apex away from
-whatever serves it today. The production block sits commented at the bottom of
-`wrangler.toml`, ready to enable when the cutover is intended, and
-`deploy:prod` exits with an error until then.
+**`stage0.us` is live — it already serves this same application**, deployed as
+a separate Worker outside this config, and is reserved for a future production
+cutover. Nothing in `wrangler.toml` claims it, deliberately: a `custom_domain`
+route attaches the hostname on deploy, so an accidental production deploy would
+replace the running site. The production block sits commented at the bottom of
+`wrangler.toml`, and `deploy:prod` exits with an error until it is enabled.
+
+The base `name` in `wrangler.toml` is `stage0-app`, **not** `stage0`, because a
+Worker called `stage0` already exists and is live. Sharing the name would mean
+a bare `wrangler deploy` writes straight to production.
 
 Each environment is built separately, because `VITE_*` values are inlined into
 the bundle at build time — `.env.preview` for pre-production. Deploying one
