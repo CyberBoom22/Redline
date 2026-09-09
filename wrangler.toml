@@ -11,21 +11,20 @@
 name = "stage0"
 compatibility_date = "2026-09-08"
 
-# stage0.us is the only origin. Leaving the *.workers.dev route enabled would
-# publish a second, indexable copy of the app on a different origin -- which
-# also means a second origin holding Supabase auth sessions.
+# test.stage0.us is the only origin. Leaving the *.workers.dev route enabled
+# would publish a second, indexable copy of the app on a different origin --
+# which also means a second origin holding Supabase auth sessions.
 workers_dev = false
 
 [assets]
 directory = "./dist"
 not_found_handling = "single-page-application"
 
+# The app is served from a subdomain of the stage0.us zone, not the apex.
+# `custom_domain = true` makes wrangler create and manage the DNS record, so
+# the only prerequisite is that the stage0.us zone sits in this account.
 [[routes]]
-pattern = "stage0.us"
-custom_domain = true
-
-[[routes]]
-pattern = "www.stage0.us"
+pattern = "test.stage0.us"
 custom_domain = true
 
 [observability]

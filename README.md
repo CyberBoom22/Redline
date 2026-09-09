@@ -154,7 +154,7 @@ bun test        # VIN validator tests
 
 ### Deploying
 
-The root `wrangler.toml` deploys the built SPA to **stage0.us** as an
+The root `wrangler.toml` deploys the built SPA to **test.stage0.us** as an
 assets-only Worker:
 
 ```bash
