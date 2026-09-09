@@ -1,95 +1,46 @@
-# Stage0 — public app deployment.
+# Stage0 — pre-production.
+#
+#   test.stage0.us    live, pre-production      <- this config
+#   stage0.us         not live, future production
 #
 # Assets-only Worker: no Worker script, so requests are served straight from
 # the built SPA. `not_found_handling = "single-page-application"` is what makes
 # /admin and /admin/login survive a hard refresh — without it a static host
 # returns 404 before React ever loads.
 #
-# One routed environment today:
-#
-#   stage0-preview       test.stage0.us    pre-production
-#
-#   bun run deploy:preview
-#
-# stage0.us is LIVE — it already serves this same application, deployed as a
-# separate Worker outside this config. Nothing here claims the apex,
-# deliberately: a `custom_domain` route attaches the hostname on deploy, so an
-# accidental production deploy would replace the running site. The production
-# block is written out at the bottom, commented, ready for a deliberate
-# cutover.
-#
-# ── Do not run a bare `wrangler deploy` ─────────────────────────────────────
-# Without `--env`, Wrangler deploys the *top-level* config as a third Worker
-# named `stage0` with no route attached. That is how stray Workers accumulate.
-# The npm scripts always pass --env; use them.
-#
-# Both environments are built from the same source but not the same bundle:
-# VITE_* variables are inlined at build time, so each environment is built
-# against its own .env file before it is deployed.
+# Deliberately NOT using Wrangler environments. Cloudflare's git integration
+# requires the Worker name in the dashboard to match `name` here, and with
+# `[env.x]` the deployed name (`stage0-preview`) differs from the top-level
+# name — the build fails on that mismatch. One live environment does not need
+# environments, and a single config also means there is no bare-`wrangler
+# deploy` footgun: the default command is the correct one.
 
-# Base name only — this config is never deployed without `--env`.
-#
-# Deliberately NOT "stage0": a Worker by that name already exists and serves
-# the live site. Sharing the name would mean a bare `wrangler deploy` writes
-# straight to production, which is the worst possible outcome of a slip.
-name = "stage0-app"
+name = "stage0-preview"
 compatibility_date = "2026-09-08"
 
-# Each environment is reachable at exactly one hostname. Leaving the
-# *.workers.dev route on would publish a second, indexable copy of the app —
-# and a second origin holding Supabase auth sessions.
+# One hostname only. A *.workers.dev route would publish a second indexable
+# copy of the app, and a second origin holding Supabase auth sessions.
 workers_dev = false
 
 [assets]
 directory = "./dist"
 not_found_handling = "single-page-application"
 
-[observability]
-enabled = true
-
-# ── pre-production ──────────────────────────────────────────────────────────
-# Deploys as `stage0-preview`.
-
-[env.preview]
-# Named explicitly rather than derived from the base name, so the hostname and
-# the Worker keep matching names whatever the base is called.
-name = "stage0-preview"
-workers_dev = false
-
-[env.preview.assets]
-directory = "./dist"
-not_found_handling = "single-page-application"
-
-[env.preview.observability]
-enabled = true
-
-# Routes are not inherited from the top level; each environment declares its
-# own. `custom_domain = true` has Wrangler create and manage the DNS record,
-# so the only prerequisite is that the stage0.us zone is in this account.
-[[env.preview.routes]]
+# `custom_domain = true` has Wrangler create and manage the DNS record, so the
+# only prerequisite is that the stage0.us zone is in this account.
+[[routes]]
 pattern = "test.stage0.us"
 custom_domain = true
 
-# ── production — NOT ENABLED ────────────────────────────────────────────────
+[observability]
+enabled = true
+
+# ── production (stage0.us) — NOT LIVE ───────────────────────────────────────
 #
-# stage0.us is live right now and reserved for the future production cutover.
-# This block stays commented so no deploy from this repo can claim the apex
-# and replace what is currently served there.
+# stage0.us is reserved for a future production cutover. Nothing here claims
+# it: `custom_domain` attaches a hostname on deploy, so a stray claim would
+# bind the apex the moment anyone deployed.
 #
-# To cut over: uncomment, confirm nothing else is bound to stage0.us, then
-# `wrangler deploy --env production`. Re-add the deploy:prod script in
-# package.json at the same time.
-#
-# [env.production]
-# workers_dev = false
-#
-# [env.production.assets]
-# directory = "./dist"
-# not_found_handling = "single-page-application"
-#
-# [env.production.observability]
-# enabled = true
-#
-# [[env.production.routes]]
-# pattern = "stage0.us"
-# custom_domain = true
+# When production is wanted, give it its OWN Worker rather than an environment
+# of this one — a second wrangler config (or a `--name`/`--route` override in
+# the deploy command) keeps the dashboard-name requirement satisfied for both.

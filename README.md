@@ -154,51 +154,43 @@ bun test        # VIN validator tests
 
 ### Deploying
 
-| Environment | Worker | Hostname | Command |
-| --- | --- | --- | --- |
-| pre-production | `stage0-preview` | `test.stage0.us` | `bun run deploy:preview` |
-| production | — | `stage0.us` | not enabled |
+| Hostname | Worker | Status |
+| --- | --- | --- |
+| `test.stage0.us` | `stage0-preview` | live — pre-production |
+| `stage0.us` | — | not live, reserved for a future production cutover |
 
-**`stage0.us` is live — it already serves this same application**, deployed as
-a separate Worker outside this config, and is reserved for a future production
-cutover. Nothing in `wrangler.toml` claims it, deliberately: a `custom_domain`
-route attaches the hostname on deploy, so an accidental production deploy would
-replace the running site. The production block sits commented at the bottom of
-`wrangler.toml`, and `deploy:prod` exits with an error until it is enabled.
+**Preferred: Cloudflare Workers Builds.** Connect this repository once and
+every push deploys itself — no local terminal.
 
-The base `name` in `wrangler.toml` is `stage0-app`, **not** `stage0`, because a
-Worker called `stage0` already exists and is live. Sharing the name would mean
-a bare `wrangler deploy` writes straight to production.
+1. Cloudflare dashboard → **Workers & Pages** → the `stage0-preview` Worker →
+   **Settings → Build → Connect**, and pick this repository.
+2. Build command `bun run build`, deploy command `npx wrangler deploy`, root
+   directory `/`.
+3. **Settings → Build → Variables**: add `VITE_SUPABASE_URL` and
+   `VITE_SUPABASE_ANON_KEY`. These are build-time values; Vite reads
+   `VITE_`-prefixed variables straight from the process environment, so no
+   `.env` file is needed in CI.
+4. **Branch control**: set the production branch to whichever branch should
+   deploy.
 
-**Before the first deploy**, create `.env.preview` (gitignored) with the
-Supabase values from `.env.example`. Without it the build still succeeds, but
-the admin screens render a configuration error — `VITE_*` values are baked in
-at build time, so there is no fixing it after the fact without rebuilding.
+The Worker name in the dashboard must match `name` in `wrangler.toml`
+(`stage0-preview`) or the build fails. That requirement is why this config
+uses no Wrangler environments: with `[env.x]`, the deployed name differs from
+the top-level name and the check rejects it.
+
+**Or deploy from a terminal:**
 
 ```bash
-cp .env.example .env.preview   # then fill in the two values
-bun run deploy:preview
+cp .env.example .env    # fill in the two Supabase values
+npx wrangler login      # once
+bun run deploy
 ```
 
-`wrangler login` is required once; the deploy runs as your Cloudflare account.
-
-Each environment is built separately, because `VITE_*` values are inlined into
-the bundle at build time — `.env.preview` for pre-production. Deploying one
-bundle to two hostnames would point the second at whatever project the last
-build happened to use.
-
-**Never run a bare `wrangler deploy`.** Without `--env`, Wrangler deploys the
-top-level config as a *third* Worker named `stage0` with no route attached.
-The npm scripts always pass `--env`; use them.
-
 `not_found_handling = "single-page-application"` is what makes `/admin` and
-`/admin/login` survive a hard refresh — without it a static host returns 404
-before React ever loads. `public/_headers` carries the CSP and the other
-response headers, and Vite copies it into `dist/` on build.
-
-`workers_dev = false` on both, so each environment is reachable at exactly one
-hostname. A second origin would also be a second origin holding Supabase auth
-sessions.
+`/admin/login` survive a hard refresh. `public/_headers` carries the CSP and
+the other response headers, and Vite copies it into `dist/` on build.
+`workers_dev = false`, so the app is reachable at exactly one hostname — a
+second origin would also be a second origin holding Supabase auth sessions.
 
 ### Signing in as the operator
 
