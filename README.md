@@ -170,8 +170,16 @@ every push deploys itself — no local terminal.
    `VITE_SUPABASE_ANON_KEY`. These are build-time values; Vite reads
    `VITE_`-prefixed variables straight from the process environment, so no
    `.env` file is needed in CI.
-4. **Branch control**: set the production branch to whichever branch should
-   deploy.
+4. **Branch control**: set the production branch to the branch that actually
+   holds this code. This is the step that silently fails — Workers Builds
+   defaults to the repository's default branch, and pushes to *other* branches
+   run `wrangler versions upload`, which uploads a version **without deploying
+   it**. If the default branch does not carry this code, the site never
+   appears and no build is marked failed.
+
+The Worker must already exist with the matching name, or be created by
+**Create application → Import a repository** (which creates and connects it in
+one step). Workers cannot be renamed after creation.
 
 The Worker name in the dashboard must match `name` in `wrangler.toml`
 (`stage0-preview`) or the build fails. That requirement is why this config
