@@ -170,6 +170,18 @@ The base `name` in `wrangler.toml` is `stage0-app`, **not** `stage0`, because a
 Worker called `stage0` already exists and is live. Sharing the name would mean
 a bare `wrangler deploy` writes straight to production.
 
+**Before the first deploy**, create `.env.preview` (gitignored) with the
+Supabase values from `.env.example`. Without it the build still succeeds, but
+the admin screens render a configuration error — `VITE_*` values are baked in
+at build time, so there is no fixing it after the fact without rebuilding.
+
+```bash
+cp .env.example .env.preview   # then fill in the two values
+bun run deploy:preview
+```
+
+`wrangler login` is required once; the deploy runs as your Cloudflare account.
+
 Each environment is built separately, because `VITE_*` values are inlined into
 the bundle at build time — `.env.preview` for pre-production. Deploying one
 bundle to two hostnames would point the second at whatever project the last
