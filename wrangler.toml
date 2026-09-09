@@ -5,13 +5,17 @@
 # /admin and /admin/login survive a hard refresh — without it a static host
 # returns 404 before React ever loads.
 #
-# Two environments, each its own Worker and its own hostname:
+# One routed environment today:
 #
 #   stage0-preview       test.stage0.us    pre-production
-#   stage0-production    stage0.us         production
 #
 #   bun run deploy:preview
-#   bun run deploy:prod
+#
+# stage0.us is LIVE and reserved for production. Nothing in this file claims
+# it, deliberately — a `custom_domain` route would attach the apex to this
+# Worker on deploy and take over whatever is serving it now. The production
+# block is written out at the bottom, commented, ready to enable when the
+# cutover is intended.
 #
 # ── Do not run a bare `wrangler deploy` ─────────────────────────────────────
 # Without `--env`, Wrangler deploys the *top-level* config as a third Worker
@@ -57,19 +61,26 @@ enabled = true
 pattern = "test.stage0.us"
 custom_domain = true
 
-# ── production ──────────────────────────────────────────────────────────────
-# Deploys as `stage0-production`.
-
-[env.production]
-workers_dev = false
-
-[env.production.assets]
-directory = "./dist"
-not_found_handling = "single-page-application"
-
-[env.production.observability]
-enabled = true
-
-[[env.production.routes]]
-pattern = "stage0.us"
-custom_domain = true
+# ── production — NOT ENABLED ────────────────────────────────────────────────
+#
+# stage0.us is live right now and reserved for the future production cutover.
+# This block stays commented so no deploy from this repo can claim the apex
+# and replace what is currently served there.
+#
+# To cut over: uncomment, confirm nothing else is bound to stage0.us, then
+# `wrangler deploy --env production`. Re-add the deploy:prod script in
+# package.json at the same time.
+#
+# [env.production]
+# workers_dev = false
+#
+# [env.production.assets]
+# directory = "./dist"
+# not_found_handling = "single-page-application"
+#
+# [env.production.observability]
+# enabled = true
+#
+# [[env.production.routes]]
+# pattern = "stage0.us"
+# custom_domain = true

@@ -154,17 +154,22 @@ bun test        # VIN validator tests
 
 ### Deploying
 
-Two environments, each its own Worker and its own hostname:
-
 | Environment | Worker | Hostname | Command |
 | --- | --- | --- | --- |
 | pre-production | `stage0-preview` | `test.stage0.us` | `bun run deploy:preview` |
-| production | `stage0-production` | `stage0.us` | `bun run deploy:prod` |
+| production | — | `stage0.us` | not enabled |
 
-Each is built separately, because `VITE_*` values are inlined into the bundle
-at build time — `.env.preview` for pre-production, `.env.production` for
-production. Deploying one bundle to both hostnames would point production at
-whatever project the last build happened to use.
+**`stage0.us` is live and reserved for a future production cutover.** Nothing
+in `wrangler.toml` claims it, deliberately: a `custom_domain` route attaches
+the hostname to the Worker on deploy, which would take the apex away from
+whatever serves it today. The production block sits commented at the bottom of
+`wrangler.toml`, ready to enable when the cutover is intended, and
+`deploy:prod` exits with an error until then.
+
+Each environment is built separately, because `VITE_*` values are inlined into
+the bundle at build time — `.env.preview` for pre-production. Deploying one
+bundle to two hostnames would point the second at whatever project the last
+build happened to use.
 
 **Never run a bare `wrangler deploy`.** Without `--env`, Wrangler deploys the
 top-level config as a *third* Worker named `stage0` with no route attached.

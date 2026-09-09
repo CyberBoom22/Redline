@@ -21,7 +21,7 @@
     "test": "bun test",
     "build:preview": "vite build --mode preview",
     "deploy:preview": "bun run build:preview && wrangler deploy --env preview",
-    "deploy:prod": "bun run build && wrangler deploy --env production"
+    "deploy:prod": "echo 'Production is not configured: stage0.us is live and reserved for a future cutover. Enable the commented [env.production] block in wrangler.toml first.' && exit 1"
   },
   "dependencies": {
     "@google/genai": "^2.4.0",
