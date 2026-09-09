@@ -2,30 +2,74 @@
 #
 # Assets-only Worker: no Worker script, so requests are served straight from
 # the built SPA. `not_found_handling = "single-page-application"` is what makes
-# /admin and /admin/login survive a hard refresh — without it the static host
+# /admin and /admin/login survive a hard refresh — without it a static host
 # returns 404 before React ever loads.
 #
-#   bun run build
-#   npx wrangler deploy
+# Two environments, each its own Worker and its own hostname:
+#
+#   stage0-preview       test.stage0.us    pre-production
+#   stage0-production    stage0.us         production
+#
+#   bun run deploy:preview
+#   bun run deploy:prod
+#
+# ── Do not run a bare `wrangler deploy` ─────────────────────────────────────
+# Without `--env`, Wrangler deploys the *top-level* config as a third Worker
+# named `stage0` with no route attached. That is how stray Workers accumulate.
+# The npm scripts always pass --env; use them.
+#
+# Both environments are built from the same source but not the same bundle:
+# VITE_* variables are inlined at build time, so each environment is built
+# against its own .env file before it is deployed.
 
 name = "stage0"
 compatibility_date = "2026-09-08"
 
-# test.stage0.us is the only origin. Leaving the *.workers.dev route enabled
-# would publish a second, indexable copy of the app on a different origin --
-# which also means a second origin holding Supabase auth sessions.
+# Each environment is reachable at exactly one hostname. Leaving the
+# *.workers.dev route on would publish a second, indexable copy of the app —
+# and a second origin holding Supabase auth sessions.
 workers_dev = false
 
 [assets]
 directory = "./dist"
 not_found_handling = "single-page-application"
 
-# The app is served from a subdomain of the stage0.us zone, not the apex.
-# `custom_domain = true` makes wrangler create and manage the DNS record, so
-# the only prerequisite is that the stage0.us zone sits in this account.
-[[routes]]
+[observability]
+enabled = true
+
+# ── pre-production ──────────────────────────────────────────────────────────
+# Deploys as `stage0-preview`.
+
+[env.preview]
+workers_dev = false
+
+[env.preview.assets]
+directory = "./dist"
+not_found_handling = "single-page-application"
+
+[env.preview.observability]
+enabled = true
+
+# Routes are not inherited from the top level; each environment declares its
+# own. `custom_domain = true` has Wrangler create and manage the DNS record,
+# so the only prerequisite is that the stage0.us zone is in this account.
+[[env.preview.routes]]
 pattern = "test.stage0.us"
 custom_domain = true
 
-[observability]
+# ── production ──────────────────────────────────────────────────────────────
+# Deploys as `stage0-production`.
+
+[env.production]
+workers_dev = false
+
+[env.production.assets]
+directory = "./dist"
+not_found_handling = "single-page-application"
+
+[env.production.observability]
 enabled = true
+
+[[env.production.routes]]
+pattern = "stage0.us"
+custom_domain = true

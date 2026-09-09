@@ -154,18 +154,30 @@ bun test        # VIN validator tests
 
 ### Deploying
 
-The root `wrangler.toml` deploys the built SPA to **test.stage0.us** as an
-assets-only Worker:
+Two environments, each its own Worker and its own hostname:
 
-```bash
-bun run build
-npx wrangler deploy
-```
+| Environment | Worker | Hostname | Command |
+| --- | --- | --- | --- |
+| pre-production | `stage0-preview` | `test.stage0.us` | `bun run deploy:preview` |
+| production | `stage0-production` | `stage0.us` | `bun run deploy:prod` |
+
+Each is built separately, because `VITE_*` values are inlined into the bundle
+at build time — `.env.preview` for pre-production, `.env.production` for
+production. Deploying one bundle to both hostnames would point production at
+whatever project the last build happened to use.
+
+**Never run a bare `wrangler deploy`.** Without `--env`, Wrangler deploys the
+top-level config as a *third* Worker named `stage0` with no route attached.
+The npm scripts always pass `--env`; use them.
 
 `not_found_handling = "single-page-application"` is what makes `/admin` and
-`/admin/login` survive a hard refresh — without it the static host returns 404
+`/admin/login` survive a hard refresh — without it a static host returns 404
 before React ever loads. `public/_headers` carries the CSP and the other
 response headers, and Vite copies it into `dist/` on build.
+
+`workers_dev = false` on both, so each environment is reachable at exactly one
+hostname. A second origin would also be a second origin holding Supabase auth
+sessions.
 
 ### Signing in as the operator
 

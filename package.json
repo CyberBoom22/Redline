@@ -18,7 +18,10 @@
     "scrape:report": "tsx scripts/scraper/cli.ts report",
     "scrape:e2e": "tsx scripts/scraper/e2e.ts",
     "scrape:push": "tsx scripts/scraper/cli.ts push",
-    "test": "bun test"
+    "test": "bun test",
+    "build:preview": "vite build --mode preview",
+    "deploy:preview": "bun run build:preview && wrangler deploy --env preview",
+    "deploy:prod": "bun run build && wrangler deploy --env production"
   },
   "dependencies": {
     "@google/genai": "^2.4.0",
