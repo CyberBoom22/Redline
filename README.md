@@ -154,18 +154,51 @@ bun test        # VIN validator tests
 
 ### Deploying
 
-The root `wrangler.toml` deploys the built SPA to **stage0.us** as an
-assets-only Worker:
+| Hostname | Worker | Status |
+| --- | --- | --- |
+| `test.stage0.us` | `stage0-preview` | live — pre-production |
+| `stage0.us` | — | not live, reserved for a future production cutover |
+
+**Preferred: Cloudflare Workers Builds.** Connect this repository once and
+every push deploys itself — no local terminal.
+
+1. Cloudflare dashboard → **Workers & Pages** → the `stage0-preview` Worker →
+   **Settings → Build → Connect**, and pick this repository.
+2. Build command `bun run build`, deploy command `npx wrangler deploy`, root
+   directory `/`.
+3. **Settings → Build → Variables**: add `VITE_SUPABASE_URL` and
+   `VITE_SUPABASE_ANON_KEY`. These are build-time values; Vite reads
+   `VITE_`-prefixed variables straight from the process environment, so no
+   `.env` file is needed in CI.
+4. **Branch control**: set the production branch to the branch that actually
+   holds this code. This is the step that silently fails — Workers Builds
+   defaults to the repository's default branch, and pushes to *other* branches
+   run `wrangler versions upload`, which uploads a version **without deploying
+   it**. If the default branch does not carry this code, the site never
+   appears and no build is marked failed.
+
+The Worker must already exist with the matching name, or be created by
+**Create application → Import a repository** (which creates and connects it in
+one step). Workers cannot be renamed after creation.
+
+The Worker name in the dashboard must match `name` in `wrangler.toml`
+(`stage0-preview`) or the build fails. That requirement is why this config
+uses no Wrangler environments: with `[env.x]`, the deployed name differs from
+the top-level name and the check rejects it.
+
+**Or deploy from a terminal:**
 
 ```bash
-bun run build
-npx wrangler deploy
+cp .env.example .env    # fill in the two Supabase values
+npx wrangler login      # once
+bun run deploy
 ```
 
 `not_found_handling = "single-page-application"` is what makes `/admin` and
-`/admin/login` survive a hard refresh — without it the static host returns 404
-before React ever loads. `public/_headers` carries the CSP and the other
-response headers, and Vite copies it into `dist/` on build.
+`/admin/login` survive a hard refresh. `public/_headers` carries the CSP and
+the other response headers, and Vite copies it into `dist/` on build.
+`workers_dev = false`, so the app is reachable at exactly one hostname — a
+second origin would also be a second origin holding Supabase auth sessions.
 
 ### Signing in as the operator
 

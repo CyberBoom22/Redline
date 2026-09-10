@@ -8,7 +8,18 @@ Nothing here is public. Access sits in front of the whole hostname, so a viewer
 is authenticated before the Worker runs; the Worker reads the verified identity
 from `Cf-Access-Authenticated-User-Email`.
 
-Deployed at **https://stage0.us**.
+> **Superseded — not deployed, and it claims no domain.**
+>
+> This Worker was the D1-backed admin dashboard built before the Supabase
+> work. The scrape report now lives inside the SPA at `/admin` and reads
+> Supabase directly, so nothing here runs in production.
+>
+> It deliberately declares **no route**. An earlier rebrand rewrote its
+> hostname to the app's domain, which would have let `wrangler deploy` from
+> this directory take that domain away from the public app. If it is ever
+> revived, give it its own hostname — never the app's.
+>
+> The setup notes below are kept for reference only.
 
 ## What's already done
 
@@ -16,8 +27,7 @@ Deployed at **https://stage0.us**.
   and its schema is applied to the remote database.
 - The Worker, dashboard, ingest endpoint and push script are written and tested
   end to end against a local D1.
-- `wrangler.toml` already carries the `stage0.us` custom-domain
-  route, so `wrangler deploy` creates the DNS record itself.
+- `wrangler.toml` carries no route at all, by design (see above).
 
 ## Security posture
 
@@ -59,16 +69,15 @@ npx wrangler secret put INGEST_SECRET   # paste a long random string; save it
 npm run deploy
 ```
 
-Generate the secret with `openssl rand -hex 32`. Deploy attaches the custom domain from `wrangler.toml`, so the dashboard comes
-up at `https://stage0.us` (the `xavierboone.us` zone has to be in
-this Cloudflare account).
+Generate the secret with `openssl rand -hex 32`. Deploy would publish only to `*.workers.dev`, since no route is configured.
+Choose a hostname of its own before attaching one.
 
 ### 2. Put Cloudflare Access in front of it
 
 In the Cloudflare dashboard → **Zero Trust → Access → Applications → Add a
 self-hosted application**:
 
-- **Domain**: `stage0.us`.
+- **Domain**: whichever hostname you give this Worker — not the app's.
 - **Policy**: *Allow* → include **Emails** → your address (add teammates here).
 - Free for up to 50 users. Login options include Google, GitHub and a one-time
   email code, so there is no password to manage.
@@ -96,14 +105,14 @@ ACCESS_AUD = "<the AUD tag>"
 ```
 
 Until these are set the dashboard returns 503 by design. Confirm with
-`curl -s -o /dev/null -w '%{http_code}' https://stage0.us/api/summary`
+`curl -s -o /dev/null -w '%{http_code}' https://<this-worker-host>/api/summary`
 — an unauthenticated request must return 401 or 403, never 200.
 
 ### 3. Point the daily scan at it
 
 In the GitHub repo → **Settings → Secrets and variables → Actions**:
 
-- **Variable** `STAGE0_DASHBOARD_URL` = `https://stage0.us`.
+- **Variable** `STAGE0_DASHBOARD_URL` = this Worker's own hostname.
 - **Secret** `STAGE0_INGEST_SECRET` = the same string you gave `wrangler secret put`.
 
 That's it. The scan workflow already has the push step, and it skips itself

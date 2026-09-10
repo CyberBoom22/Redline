@@ -18,7 +18,8 @@
     "scrape:report": "tsx scripts/scraper/cli.ts report",
     "scrape:e2e": "tsx scripts/scraper/e2e.ts",
     "scrape:push": "tsx scripts/scraper/cli.ts push",
-    "test": "bun test"
+    "test": "bun test",
+    "deploy": "bun run build && wrangler deploy"
   },
   "dependencies": {
     "@google/genai": "^2.4.0",
@@ -45,6 +46,7 @@
     "tailwindcss": "^4.1.14",
     "tsx": "^4.21.0",
     "typescript": "~5.8.2",
-    "vite": "^6.2.3"
+    "vite": "^6.2.3",
+    "wrangler": "^4.130.0"
   }
 }
