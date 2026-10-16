@@ -1,7 +1,8 @@
 import React from 'react';
 import { PlatformId } from '../../types';
 import { VETTED_TUNERS } from '../../data/tuners';
-import { UserCheck, ExternalLink, ShieldCheck, Star, MapPin, Zap, Cpu } from 'lucide-react';
+import { ExternalLink, ShieldCheck, Star, MapPin } from 'lucide-react';
+import { PageHeader } from '../billet/PageHeader';
 
 interface TunersListProps {
   platformId: PlatformId;
@@ -13,99 +14,78 @@ export const TunersList: React.FC<TunersListProps> = ({ platformId }) => {
   return (
     <div className="space-y-6">
       {/* Header Banner */}
-      <div className="bg-slate-900 border border-slate-800 rounded-2xl p-6 shadow-xl space-y-2">
-        <div className="flex items-center gap-2">
-          <UserCheck className="w-6 h-6 text-red-500" />
-          <h2 className="text-xl font-bold font-mono text-white uppercase tracking-wider">
-            Tuning Strategy — Flash-At-Home vs Vetted Tuners
-          </h2>
-        </div>
-        <p className="text-xs text-slate-400 max-w-xl leading-relaxed">
-          Flash-at-home (BM3, MHD, EcuTek OTS) when that's the honest answer; vetted local/remote custom tuner shortlist when custom hardware or high ethanol blends demand custom calibration.
-        </p>
-      </div>
+      <PageHeader
+        eyebrow="Vetted tuners"
+        title="Tuning Strategy — Flash-At-Home vs Vetted Tuners"
+        description="Flash-at-home (BM3, MHD, EcuTek OTS) when that's the honest answer; vetted local/remote custom tuner shortlist when custom hardware or high ethanol blends demand custom calibration."
+      />
 
       {/* Tuners Cards Grid */}
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+      <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
         {filteredTuners.map((tuner) => (
-          <div
-            key={tuner.id}
-            className="bg-slate-900 border border-slate-800 rounded-2xl p-5 space-y-4 shadow-lg hover:border-slate-700 transition-all flex flex-col justify-between"
-          >
+          <article key={tuner.id} className="plate flex flex-col justify-between gap-4 p-5">
             <div className="space-y-3">
-              <div className="flex items-start justify-between gap-3">
-                <div>
-                  <div className="flex items-center gap-1.5 text-xs text-amber-400 font-bold font-mono">
-                    <Star className="w-3.5 h-3.5 fill-current" />
-                    <span>{tuner.rating}</span>
-                    <span className="text-slate-500">({tuner.reviewCount} reviews)</span>
+              <div className="flex flex-wrap items-start justify-between gap-3">
+                <div className="min-w-0">
+                  <div className="flex items-center gap-1.5 text-[15px] text-text-2">
+                    <Star className="h-4 w-4 fill-current text-ink" aria-hidden="true" />
+                    <span className="num text-ink">{tuner.rating}</span>
+                    <span>({tuner.reviewCount} reviews)</span>
                   </div>
-                  <h3 className="font-bold text-base text-white mt-1 font-mono">{tuner.name}</h3>
+                  <h2 className="etch mt-1 text-[18px] font-bold leading-snug text-ink">{tuner.name}</h2>
                 </div>
 
                 {tuner.verifiedHandshake && (
-                  <span className="text-[10px] font-mono bg-emerald-950 text-emerald-400 border border-emerald-800 px-2 py-0.5 rounded font-bold flex items-center gap-1 whitespace-nowrap">
-                    <ShieldCheck className="w-3 h-3" />
+                  <span className="chip bg-ink border-ink text-on-dark">
+                    <ShieldCheck className="h-3.5 w-3.5" aria-hidden="true" />
                     <span>Vetted Handshake</span>
                   </span>
                 )}
               </div>
 
-              <div className="flex items-center gap-1 text-xs text-slate-400 font-mono">
-                <MapPin className="w-3.5 h-3.5 text-red-400" />
+              <div className="flex items-center gap-1.5 text-[15px] text-text-2">
+                <MapPin className="h-4 w-4 shrink-0 text-accent-deep" aria-hidden="true" />
                 <span>{tuner.location}</span>
               </div>
 
               {/* Specialties */}
               <div className="space-y-1.5">
-                <span className="text-[10px] font-mono text-slate-400 uppercase font-bold block">
-                  Calibrator Specialties:
-                </span>
-                <div className="flex flex-wrap gap-1.5">
+                <h3 className="label-ui text-text-3">Calibrator Specialties:</h3>
+                <ul className="flex flex-wrap gap-1.5">
                   {tuner.specialties.map((spec, i) => (
-                    <span
-                      key={i}
-                      className="text-[11px] font-mono bg-slate-950 text-slate-300 border border-slate-800 px-2 py-0.5 rounded"
-                    >
+                    <li key={i} className="well px-2 py-0.5 text-[14px] text-text-2">
                       {spec}
-                    </span>
+                    </li>
                   ))}
-                </div>
+                </ul>
               </div>
 
               {/* Flash Platforms Supported */}
-              <div className="space-y-1">
-                <span className="text-[10px] font-mono text-slate-400 uppercase font-bold block">
-                  Flash Software Supported:
-                </span>
-                <div className="flex flex-wrap gap-1">
+              <div className="space-y-1.5">
+                <h3 className="label-ui text-text-3">Flash Software Supported:</h3>
+                <ul className="flex flex-wrap gap-1.5">
                   {tuner.flashSoftware.map((sw, i) => (
-                    <span
-                      key={i}
-                      className="text-[10px] font-mono bg-red-950/60 text-red-300 border border-red-900/60 px-2 py-0.2 rounded"
-                    >
+                    <li key={i} className="chip text-ink">
                       {sw}
-                    </span>
+                    </li>
                   ))}
-                </div>
+                </ul>
               </div>
             </div>
 
-            <div className="pt-3 border-t border-slate-800 flex items-center justify-between">
-              <span className="text-[11px] text-slate-500 font-mono">
-                Direct Handshake List
-              </span>
+            <div className="flex flex-wrap items-center justify-between gap-3 border-t border-black/15 pt-3">
+              <span className="label-ui text-text-3">Direct Handshake List</span>
               <a
                 href={tuner.contactUrl}
                 target="_blank"
                 rel="noreferrer"
-                className="px-3.5 py-1.5 bg-red-600 hover:bg-red-500 text-white font-bold text-xs rounded-xl shadow-md transition-all font-mono flex items-center gap-1.5"
+                className="btn btn-primary btn-sm"
               >
                 <span>Book Calibration</span>
-                <ExternalLink className="w-3.5 h-3.5" />
+                <ExternalLink className="h-4 w-4" aria-hidden="true" />
               </a>
             </div>
-          </div>
+          </article>
         ))}
       </div>
     </div>

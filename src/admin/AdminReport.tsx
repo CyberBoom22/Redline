@@ -1,8 +1,9 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import {
   Activity, AlertOctagon, ArrowRight, Ban, CheckCircle2, ChevronRight, Clock,
-  Database, ExternalLink, Gauge, Loader2, LogOut, RefreshCw, ShieldAlert,
+  Database, ExternalLink, Loader2, LogOut, RefreshCw, ShieldAlert,
 } from 'lucide-react';
+import { Logo } from '../components/billet/Logo';
 import { requireSupabase } from '../lib/supabase';
 import { useAuth } from './AuthProvider';
 import { ScrapeEvent, ScrapeRun } from './types';
@@ -11,21 +12,21 @@ const PLATFORM_LABELS: Record<string, string> = { b58: 'B58', vq_vr: 'VQ/VR' };
 
 /** `blocked` and `budget` are the two an operator needs to notice. */
 const STOP_REASON_STYLE: Record<string, string> = {
-  blocked: 'bg-red-950/90 text-red-300 border-red-700',
-  budget: 'bg-amber-950/90 text-amber-300 border-amber-700',
-  error: 'bg-red-950/90 text-red-300 border-red-700',
-  queue_empty: 'bg-slate-800 text-slate-400 border-slate-700',
-  completed: 'bg-emerald-950/80 text-emerald-400 border-emerald-800',
+  blocked: 'chip chip-accent',
+  budget: 'chip text-accent-bright',
+  error: 'chip chip-accent',
+  queue_empty: 'chip text-dark-muted',
+  completed: 'chip text-on-dark',
 };
 
 const OUTCOME_STYLE: Record<string, string> = {
-  price_changed: 'text-amber-300',
-  created: 'text-emerald-400',
-  updated: 'text-sky-300',
-  unchanged: 'text-slate-500',
-  gone: 'text-red-400',
-  error: 'text-red-400',
-  not_modified: 'text-slate-500',
+  price_changed: 'text-on-dark font-bold',
+  created: 'text-on-dark',
+  updated: 'text-on-dark',
+  unchanged: 'text-dark-muted',
+  gone: 'text-accent-bright',
+  error: 'text-accent-bright font-bold',
+  not_modified: 'text-dark-muted',
 };
 
 function formatDuration(seconds: number | null): string {
@@ -113,91 +114,80 @@ export const AdminReport: React.FC = () => {
 
   const selectedRun = runs?.find((r) => r.id === selectedRunId) ?? null;
 
+  const th = 'label-ui px-3 py-3 font-normal text-dark-muted';
+
   return (
-    <div className="min-h-screen bg-slate-950 text-slate-100 font-sans selection:bg-red-600 selection:text-white">
-      <header className="sticky top-0 z-30 bg-slate-950/90 backdrop-blur-md border-b border-slate-800">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-3 flex items-center justify-between gap-4">
-          <div className="flex items-center gap-3">
-            <div className="w-9 h-9 rounded-lg bg-gradient-to-br from-red-600 to-red-800 text-white flex items-center justify-center ring-1 ring-red-500/30">
-              <Gauge className="w-5 h-5" />
+    <div className="flex min-h-screen flex-col">
+      <header className="sticky top-0 z-30 bg-ink text-on-dark">
+        <div className="mx-auto flex max-w-7xl flex-wrap items-center justify-between gap-3 px-4 py-3 sm:px-6 lg:px-8">
+          <div className="min-w-0">
+            <div className="flex items-baseline gap-3">
+              <Logo />
+              <span className="label-ui text-dark-muted">Scrape report</span>
             </div>
-            <div>
-              <div className="font-mono font-bold text-sm uppercase tracking-wider text-white">
-                Scrape Report
-              </div>
-              <p className="text-[11px] text-slate-500 font-mono">{session?.user.email}</p>
-            </div>
+            <p className="mt-1 truncate text-[14px] text-dark-muted">{session?.user.email}</p>
           </div>
           <div className="flex items-center gap-2">
-            <button
-              onClick={() => void loadRuns()}
-              className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-slate-900 hover:bg-slate-800 border border-slate-800 text-slate-300 text-[11px] font-mono uppercase tracking-widest transition-colors"
-            >
-              <RefreshCw className="w-3.5 h-3.5" />
+            <button onClick={() => void loadRuns()} className="btn btn-ghost-dark btn-sm">
+              <RefreshCw className="h-4 w-4" aria-hidden="true" />
               Refresh
             </button>
-            <button
-              onClick={() => void signOut()}
-              className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-slate-900 hover:bg-red-950/60 border border-slate-800 hover:border-red-800 text-slate-300 hover:text-red-300 text-[11px] font-mono uppercase tracking-widest transition-colors"
-            >
-              <LogOut className="w-3.5 h-3.5" />
+            <button onClick={() => void signOut()} className="btn btn-ghost-dark btn-sm">
+              <LogOut className="h-4 w-4" aria-hidden="true" />
               Sign out
             </button>
           </div>
         </div>
       </header>
 
-      <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 space-y-6">
+      <main className="mx-auto w-full max-w-7xl flex-1 space-y-6 px-4 py-6 sm:px-6 lg:px-8">
+        <h1 className="sr-only">Scrape report</h1>
+
         {runsError && (
-          <div className="flex items-start gap-2 bg-red-950/40 border border-red-800/70 rounded-xl px-4 py-3">
-            <ShieldAlert className="w-4 h-4 text-red-400 shrink-0 mt-0.5" />
-            <p className="text-xs text-red-300">{runsError}</p>
+          <div role="alert" className="plate flex items-start gap-2 border border-accent px-4 py-3">
+            <ShieldAlert className="mt-0.5 h-4 w-4 shrink-0 text-accent-deep" aria-hidden="true" />
+            <p className="text-[15px] text-text-2">{runsError}</p>
           </div>
         )}
 
         {runs === null ? (
-          <div className="flex items-center justify-center gap-2 py-24 text-slate-500">
-            <Loader2 className="w-4 h-4 animate-spin" />
-            <span className="font-mono text-xs uppercase tracking-widest">Loading runs</span>
+          <div className="flex items-center justify-center gap-2 py-24 text-text-2">
+            <Loader2 className="h-4 w-4 animate-spin" aria-hidden="true" />
+            <span className="label-ui">Loading runs</span>
           </div>
         ) : runs.length === 0 ? (
-          <div className="bg-slate-900 border border-slate-800 rounded-2xl p-10 text-center space-y-3">
-            <div className="w-11 h-11 rounded-full bg-slate-800 text-slate-500 border border-slate-700 flex items-center justify-center mx-auto">
-              <Database className="w-5 h-5" />
-            </div>
-            <h2 className="font-mono font-bold text-sm uppercase tracking-wide text-slate-200">
-              No scrape runs recorded yet
-            </h2>
-            <p className="text-xs text-slate-400 max-w-md mx-auto leading-relaxed">
-              The scraper runs in GitHub Actions and writes to <code className="font-mono text-slate-300">data/catalog/</code>.
+          <div className="plate space-y-3 p-10 text-center">
+            <Database className="mx-auto h-6 w-6 text-text-3" aria-hidden="true" />
+            <h2 className="h-section etch text-ink">No scrape runs recorded yet</h2>
+            <p className="mx-auto max-w-md text-[16px] text-text-2">
+              The scraper runs in GitHub Actions and writes to <code className="font-semibold text-ink">data/catalog/</code>.
               Once the sync job that pushes those results into Supabase is in place, its runs will appear here.
             </p>
           </div>
         ) : (
           <>
-            <section className="bg-slate-900 border border-slate-800 rounded-2xl overflow-hidden">
-              <div className="flex items-center gap-2 px-5 py-3 border-b border-slate-800">
-                <Activity className="w-4 h-4 text-red-500" />
-                <h2 className="font-mono font-bold text-sm uppercase tracking-wide text-slate-100">
-                  Runs
-                </h2>
-                <span className="text-[10px] font-mono text-slate-500">{runs.length} recorded</span>
+            <section className="panel-dark overflow-hidden" aria-labelledby="runs-title">
+              <div className="flex flex-wrap items-baseline gap-3 border-b border-dark-border px-5 py-4">
+                <Activity className="h-4 w-4 self-center text-dark-muted" aria-hidden="true" />
+                <h2 id="runs-title" className="h-section">Runs</h2>
+                <span className="label-ui text-dark-muted">{runs.length} recorded</span>
               </div>
 
+              {/* Wide table scrolls inside its own container. */}
               <div className="overflow-x-auto">
-                <table className="w-full text-xs">
+                <table className="w-full text-[14px]">
                   <thead>
-                    <tr className="text-[10px] font-mono uppercase tracking-widest text-slate-500 border-b border-slate-800">
-                      <th className="text-left px-4 py-2.5 font-semibold">Started</th>
-                      <th className="text-left px-3 py-2.5 font-semibold">Trigger</th>
-                      <th className="text-right px-3 py-2.5 font-semibold">Duration</th>
-                      <th className="text-right px-3 py-2.5 font-semibold">Requests</th>
-                      <th className="text-left px-3 py-2.5 font-semibold">By platform</th>
-                      <th className="text-right px-3 py-2.5 font-semibold">Parts +/~/=/−</th>
-                      <th className="text-right px-3 py-2.5 font-semibold">Price</th>
-                      <th className="text-right px-3 py-2.5 font-semibold">Errors</th>
-                      <th className="text-left px-3 py-2.5 font-semibold">Stopped</th>
-                      <th className="px-2 py-2.5"></th>
+                    <tr className="border-b border-dark-border">
+                      <th className={`${th} pl-5 text-left`}>Started</th>
+                      <th className={`${th} text-left`}>Trigger</th>
+                      <th className={`${th} text-right`}>Duration</th>
+                      <th className={`${th} text-right`}>Requests</th>
+                      <th className={`${th} text-left`}>By platform</th>
+                      <th className={`${th} text-right`}>Parts +/~/=/−</th>
+                      <th className={`${th} text-right`}>Price</th>
+                      <th className={`${th} text-right`}>Errors</th>
+                      <th className={`${th} text-left`}>Stopped</th>
+                      <th className="px-2 py-3"><span className="sr-only">Details</span></th>
                     </tr>
                   </thead>
                   <tbody>
@@ -211,71 +201,77 @@ export const AdminReport: React.FC = () => {
                         <tr
                           key={run.id}
                           onClick={() => setSelectedRunId(selected ? null : run.id)}
-                          className={`border-b border-slate-850/60 cursor-pointer transition-colors ${
-                            selected ? 'bg-red-950/20' : 'hover:bg-slate-850/40'
+                          className={`cursor-pointer border-b border-dark-border transition-colors ${
+                            selected ? 'bg-[#2a1216]' : 'hover:bg-[#1e2125]'
                           }`}
                         >
-                          <td className="px-4 py-2.5 font-mono text-slate-200 whitespace-nowrap">
+                          <td className="whitespace-nowrap py-2.5 pl-5 pr-3 text-on-dark">
                             {formatWhen(run.started_at)}
-                            <span className="text-slate-600"> → </span>
-                            <span className="text-slate-400">{formatWhen(run.finished_at)}</span>
+                            <span className="text-dark-muted"> → </span>
+                            <span className="text-dark-muted">{formatWhen(run.finished_at)}</span>
                           </td>
-                          <td className="px-3 py-2.5 font-mono text-slate-400">{run.trigger}</td>
-                          <td className="px-3 py-2.5 text-right font-mono text-slate-300 tabular-nums">
-                            <Clock className="w-3 h-3 inline mr-1 text-slate-600" />
+                          <td className="px-3 py-2.5 text-dark-muted">{run.trigger}</td>
+                          <td className="whitespace-nowrap px-3 py-2.5 text-right tabular-nums text-on-dark">
+                            <Clock className="mr-1 inline h-3.5 w-3.5 text-dark-muted" aria-hidden="true" />
                             {formatDuration(run.duration_seconds)}
                           </td>
-                          <td className="px-3 py-2.5 text-right font-mono tabular-nums whitespace-nowrap">
-                            <span className={pct >= 95 ? 'text-amber-300' : 'text-slate-200'}>
+                          <td className="whitespace-nowrap px-3 py-2.5 text-right tabular-nums">
+                            <span className={pct >= 95 ? 'font-bold text-accent-bright' : 'text-on-dark'}>
                               {run.requests_used}
                             </span>
-                            <span className="text-slate-600">/{run.request_limit}</span>
+                            <span className="text-dark-muted">/{run.request_limit}</span>
                           </td>
-                          <td className="px-3 py-2.5 font-mono text-slate-400 whitespace-nowrap">
+                          <td className="whitespace-nowrap px-3 py-2.5 text-dark-muted">
                             {Object.keys(run.by_platform ?? {}).length === 0 ? (
-                              <span className="text-slate-600">—</span>
+                              <span>—</span>
                             ) : (
                               Object.entries(run.by_platform).map(([k, v]) => (
                                 <span key={k} className="mr-2">
-                                  <span className="text-slate-500">{PLATFORM_LABELS[k] ?? k}</span>{' '}
-                                  <span className="text-slate-200 tabular-nums">{String(v)}</span>
+                                  <span>{PLATFORM_LABELS[k] ?? k}</span>{' '}
+                                  <span className="tabular-nums text-on-dark">{String(v)}</span>
                                 </span>
                               ))
                             )}
                           </td>
-                          <td className="px-3 py-2.5 text-right font-mono tabular-nums whitespace-nowrap">
-                            <span className="text-emerald-400">{run.parts_created}</span>
-                            <span className="text-slate-700">/</span>
-                            <span className="text-sky-300">{run.parts_updated}</span>
-                            <span className="text-slate-700">/</span>
-                            <span className="text-slate-500">{run.parts_unchanged}</span>
-                            <span className="text-slate-700">/</span>
-                            <span className="text-red-400">{run.gone}</span>
+                          <td className="whitespace-nowrap px-3 py-2.5 text-right tabular-nums">
+                            <span className="text-on-dark">{run.parts_created}</span>
+                            <span className="text-dark-muted">/</span>
+                            <span className="text-on-dark">{run.parts_updated}</span>
+                            <span className="text-dark-muted">/</span>
+                            <span className="text-dark-muted">{run.parts_unchanged}</span>
+                            <span className="text-dark-muted">/</span>
+                            <span className="text-accent-bright">{run.gone}</span>
                           </td>
-                          <td className="px-3 py-2.5 text-right font-mono tabular-nums text-amber-300">
+                          <td className="px-3 py-2.5 text-right tabular-nums text-on-dark">
                             {run.price_changes}
                           </td>
-                          <td className="px-3 py-2.5 text-right font-mono tabular-nums">
-                            <span className={run.errors > 0 ? 'text-red-400' : 'text-slate-600'}>
+                          <td className="px-3 py-2.5 text-right tabular-nums">
+                            <span className={run.errors > 0 ? 'font-bold text-accent-bright' : 'text-dark-muted'}>
                               {run.errors}
                             </span>
                           </td>
                           <td className="px-3 py-2.5">
-                            <span
-                              className={`inline-flex items-center gap-1 text-[10px] font-mono font-bold uppercase tracking-wider px-2 py-0.5 rounded border ${
-                                STOP_REASON_STYLE[stop] ?? 'bg-slate-800 text-slate-400 border-slate-700'
-                              }`}
-                            >
-                              {stop === 'blocked' && <Ban className="w-3 h-3" />}
-                              {stop === 'budget' && <AlertOctagon className="w-3 h-3" />}
-                              {stop === 'completed' && <CheckCircle2 className="w-3 h-3" />}
+                            <span className={STOP_REASON_STYLE[stop] ?? 'chip text-dark-muted'}>
+                              {stop === 'blocked' && <Ban className="h-3 w-3" aria-hidden="true" />}
+                              {stop === 'budget' && <AlertOctagon className="h-3 w-3" aria-hidden="true" />}
+                              {stop === 'completed' && <CheckCircle2 className="h-3 w-3" aria-hidden="true" />}
                               {stop}
                             </span>
                           </td>
-                          <td className="px-2 py-2.5 text-slate-600">
-                            <ChevronRight
-                              className={`w-4 h-4 transition-transform ${selected ? 'rotate-90 text-red-400' : ''}`}
-                            />
+                          <td className="px-1 py-1 text-dark-muted">
+                            {/* The click bubbles to the row; this button gives
+                                keyboard and screen-reader users the same toggle. */}
+                            <button
+                              type="button"
+                              aria-expanded={selected}
+                              aria-label={`${selected ? 'Hide' : 'Show'} events for run started ${formatWhen(run.started_at)}`}
+                              className="icon-btn hover:text-on-dark"
+                            >
+                              <ChevronRight
+                                className={`h-4 w-4 transition-transform ${selected ? 'rotate-90 text-accent-bright' : ''}`}
+                                aria-hidden="true"
+                              />
+                            </button>
                           </td>
                         </tr>
                       );
@@ -286,12 +282,10 @@ export const AdminReport: React.FC = () => {
             </section>
 
             {selectedRun && (
-              <section className="bg-slate-900 border border-slate-800 rounded-2xl overflow-hidden">
-                <div className="flex flex-wrap items-center gap-3 px-5 py-3 border-b border-slate-800">
-                  <h2 className="font-mono font-bold text-sm uppercase tracking-wide text-slate-100">
-                    Events
-                  </h2>
-                  <span className="text-[10px] font-mono text-slate-500">
+              <section className="panel-dark overflow-hidden" aria-labelledby="events-title">
+                <div className="flex flex-wrap items-center gap-3 border-b border-dark-border px-5 py-4">
+                  <h2 id="events-title" className="h-section">Events</h2>
+                  <span className="label-ui text-dark-muted">
                     {formatWhen(selectedRun.started_at)} · {selectedRun.trigger}
                   </span>
                   {selectedRun.github_run_url && (
@@ -299,26 +293,23 @@ export const AdminReport: React.FC = () => {
                       href={selectedRun.github_run_url}
                       target="_blank"
                       rel="noopener noreferrer"
-                      className="text-[10px] font-mono uppercase tracking-widest text-slate-400 hover:text-red-300 inline-flex items-center gap-1"
+                      className="link text-[14px] text-dark-muted hover:text-on-dark"
                     >
-                      Actions run <ExternalLink className="w-3 h-3" />
+                      Actions run <ExternalLink className="h-3.5 w-3.5" aria-hidden="true" />
                     </a>
                   )}
 
-                  <div className="ml-auto flex flex-wrap items-center gap-1.5">
+                  <div className="flex w-full flex-wrap items-center gap-2 lg:ml-auto lg:w-auto">
                     {['all', ...outcomes].map((outcome) => (
                       <button
                         key={outcome}
                         onClick={() => setOutcomeFilter(outcome)}
-                        className={`px-2.5 py-1 rounded-lg border text-[10px] font-mono uppercase tracking-wider transition-colors ${
-                          outcomeFilter === outcome
-                            ? 'bg-red-600 border-red-500 text-white'
-                            : 'bg-slate-950 border-slate-800 text-slate-400 hover:text-slate-200'
-                        }`}
+                        aria-pressed={outcomeFilter === outcome}
+                        className="toggle toggle-dark text-[13px] uppercase tracking-[1px]"
                       >
                         {outcome}
                         {outcome !== 'all' && events && (
-                          <span className="ml-1 opacity-60">
+                          <span className="tabular-nums">
                             {events.filter((e) => e.outcome === outcome).length}
                           </span>
                         )}
@@ -328,70 +319,68 @@ export const AdminReport: React.FC = () => {
                 </div>
 
                 {eventsLoading ? (
-                  <div className="flex items-center justify-center gap-2 py-12 text-slate-500">
-                    <Loader2 className="w-4 h-4 animate-spin" />
-                    <span className="font-mono text-xs uppercase tracking-widest">Loading events</span>
+                  <div className="flex items-center justify-center gap-2 py-12 text-dark-muted">
+                    <Loader2 className="h-4 w-4 animate-spin" aria-hidden="true" />
+                    <span className="label-ui">Loading events</span>
                   </div>
                 ) : visibleEvents.length === 0 ? (
-                  <p className="px-5 py-10 text-center text-xs text-slate-500 font-mono uppercase tracking-widest">
+                  <p className="label-ui px-5 py-10 text-center text-dark-muted">
                     No events recorded for this run
                   </p>
                 ) : (
                   <div className="overflow-x-auto">
-                    <table className="w-full text-xs">
+                    <table className="w-full text-[14px]">
                       <thead>
-                        <tr className="text-[10px] font-mono uppercase tracking-widest text-slate-500 border-b border-slate-800">
-                          <th className="text-left px-4 py-2.5 font-semibold">Vendor</th>
-                          <th className="text-left px-3 py-2.5 font-semibold">URL</th>
-                          <th className="text-left px-3 py-2.5 font-semibold">Kind</th>
-                          <th className="text-right px-3 py-2.5 font-semibold">Status</th>
-                          <th className="text-left px-3 py-2.5 font-semibold">Outcome</th>
-                          <th className="text-right px-3 py-2.5 font-semibold">Price</th>
+                        <tr className="border-b border-dark-border">
+                          <th className={`${th} pl-5 text-left`}>Vendor</th>
+                          <th className={`${th} text-left`}>URL</th>
+                          <th className={`${th} text-left`}>Kind</th>
+                          <th className={`${th} text-right`}>Status</th>
+                          <th className={`${th} text-left`}>Outcome</th>
+                          <th className={`${th} text-right`}>Price</th>
                         </tr>
                       </thead>
                       <tbody>
                         {visibleEvents.map((event) => (
-                          <tr key={event.id} className="border-b border-slate-850/60 hover:bg-slate-850/40">
-                            <td className="px-4 py-2 font-mono text-slate-300 whitespace-nowrap">
+                          <tr key={event.id} className="border-b border-dark-border hover:bg-[#1e2125]">
+                            <td className="whitespace-nowrap py-2 pl-5 pr-3 text-on-dark">
                               {event.vendor_id}
                             </td>
-                            <td className="px-3 py-2 max-w-md">
+                            <td className="max-w-md px-3 py-2">
                               <a
                                 href={event.url}
                                 target="_blank"
                                 rel="noopener noreferrer"
-                                className="font-mono text-slate-400 hover:text-red-300 truncate block"
+                                className="block truncate text-dark-muted underline underline-offset-2 hover:text-on-dark"
                                 title={event.url}
                               >
                                 {event.url}
                               </a>
                               {event.message && (
-                                <span className="block text-[10px] text-slate-600 truncate">{event.message}</span>
+                                <span className="block truncate text-[13px] text-dark-muted">{event.message}</span>
                               )}
                             </td>
-                            <td className="px-3 py-2 font-mono text-slate-500">{event.kind}</td>
-                            <td className="px-3 py-2 text-right font-mono tabular-nums">
+                            <td className="px-3 py-2 text-dark-muted">{event.kind}</td>
+                            <td className="px-3 py-2 text-right tabular-nums">
                               <span
                                 className={
-                                  event.status && event.status >= 400 ? 'text-red-400' : 'text-slate-400'
+                                  event.status && event.status >= 400 ? 'font-bold text-accent-bright' : 'text-dark-muted'
                                 }
                               >
                                 {event.status ?? '—'}
                               </span>
                             </td>
-                            <td
-                              className={`px-3 py-2 font-mono ${OUTCOME_STYLE[event.outcome] ?? 'text-slate-300'}`}
-                            >
+                            <td className={`px-3 py-2 ${OUTCOME_STYLE[event.outcome] ?? 'text-on-dark'}`}>
                               {event.outcome}
                             </td>
-                            <td className="px-3 py-2 text-right font-mono tabular-nums whitespace-nowrap">
+                            <td className="whitespace-nowrap px-3 py-2 text-right tabular-nums">
                               {event.old_price === null && event.new_price === null ? (
-                                <span className="text-slate-700">—</span>
+                                <span className="text-dark-muted">—</span>
                               ) : (
                                 <span>
-                                  <span className="text-slate-500">{formatPrice(event.old_price)}</span>
-                                  <ArrowRight className="w-3 h-3 inline mx-1 text-slate-600" />
-                                  <span className="text-amber-300">{formatPrice(event.new_price)}</span>
+                                  <span className="text-dark-muted">{formatPrice(event.old_price)}</span>
+                                  <ArrowRight className="mx-1 inline h-3 w-3 text-dark-muted" aria-hidden="true" />
+                                  <span className="font-bold text-on-dark">{formatPrice(event.new_price)}</span>
                                 </span>
                               )}
                             </td>

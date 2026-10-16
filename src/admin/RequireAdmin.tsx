@@ -19,12 +19,12 @@ export const RequireAdmin: React.FC<{ children: React.ReactNode }> = ({ children
 
   if (configError) {
     return (
-      <div className="min-h-screen bg-slate-950 text-slate-100 flex items-center justify-center px-4">
-        <div className="max-w-lg bg-slate-900 border border-red-800/70 rounded-2xl p-6 space-y-2">
-          <h1 className="font-mono font-bold text-sm uppercase tracking-wide text-red-400">
+      <div className="flex min-h-screen items-center justify-center px-4">
+        <div className="plate max-w-lg space-y-2 border border-accent p-6">
+          <h1 className="h-section etch text-accent-deep">
             Configuration required
           </h1>
-          <p className="text-sm text-slate-300 leading-relaxed">{configError}</p>
+          <p className="text-[16px] text-text-2">{configError}</p>
         </div>
       </div>
     );
@@ -32,9 +32,9 @@ export const RequireAdmin: React.FC<{ children: React.ReactNode }> = ({ children
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-slate-950 text-slate-500 flex items-center justify-center gap-2">
-        <Loader2 className="w-4 h-4 animate-spin" />
-        <span className="font-mono text-xs uppercase tracking-widest">Checking access</span>
+      <div className="flex min-h-screen items-center justify-center gap-2 text-text-2">
+        <Loader2 className="h-4 w-4 animate-spin" aria-hidden="true" />
+        <span className="label-ui">Checking access</span>
       </div>
     );
   }

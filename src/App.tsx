@@ -15,6 +15,8 @@ import { BuildPath } from './components/BuildPlanner/BuildPath';
 import { CompareSlider } from './components/BuildPlanner/CompareSlider';
 import { WarningsPanel } from './components/BuildPlanner/WarningsPanel';
 import { BuildSummaryModal } from './components/BuildSummaryModal';
+import { Hero } from './components/billet/Hero';
+import { Logo } from './components/billet/Logo';
 
 // Tabs
 import { PartsMarketplace } from './components/Marketplace/PartsMarketplace';
@@ -49,6 +51,9 @@ export default function App() {
   const stockWhp = currentEngine.stockWhp;
   const stockWtq = currentEngine.stockWtq;
 
+  // Full scale of the hero boost dial; matches the dyno chart's boost axis.
+  const BOOST_GAUGE_MAX_PSI = 30;
+
   // Parts for current engine
   const engineParts = getPartsForEngine(vehicle.engineId);
 
@@ -60,6 +65,8 @@ export default function App() {
   const partsTotal = selectedOwnedParts.reduce((sum, p) => sum + p.price, 0);
   const supportingTotal = selectedOwnedParts.filter(p => p.isSupportingMod).reduce((sum, p) => sum + p.price, 0);
   const laborTotal = selectedOwnedParts.reduce((sum, p) => sum + p.estLaborCost, 0);
+  // Same figure the instrument cluster labels "Realistic All-In".
+  const allInTotal = partsTotal + supportingTotal + laborTotal;
 
   const gapWhp = Math.max(0, goalWhp - projectedWhp);
 
@@ -93,7 +100,7 @@ export default function App() {
   };
 
   return (
-    <div className="min-h-screen bg-slate-950 text-slate-100 font-sans selection:bg-red-600 selection:text-white">
+    <div className="flex min-h-screen flex-col">
       {/* Header Bar */}
       <Header
         vehicle={vehicle}
@@ -104,11 +111,27 @@ export default function App() {
       />
 
       {/* Main Container */}
-      <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 space-y-6">
+      <main className="mx-auto w-full max-w-7xl flex-1 space-y-6 px-4 py-6 sm:px-6 lg:px-8">
         {/* Main View Router */}
         {activeTab === 'planner' && (
           <div className="space-y-6">
+            <Hero
+              vehicle={vehicle}
+              engineName={currentEngine.name}
+              boostPsi={currentEngine.stockBoostPsi}
+              boostMaxPsi={BOOST_GAUGE_MAX_PSI}
+              selectedParts={selectedOwnedParts}
+              partsTotal={partsTotal}
+              laborTotal={laborTotal}
+              allInTotal={allInTotal}
+              onPlanBuild={() =>
+                document.getElementById('planner-workspace')?.scrollIntoView({ behavior: 'smooth', block: 'start' })
+              }
+              onChooseVehicle={() => setIsVehicleModalOpen(true)}
+            />
+
             {/* Instrument Cluster Top Cockpit HUD */}
+            <div id="planner-workspace" className="scroll-mt-6 md:scroll-mt-40" />
             <InstrumentCluster
               stockWhp={stockWhp}
               projectedWhp={projectedWhp}
@@ -123,9 +146,9 @@ export default function App() {
             />
 
             {/* Core User Flow Section */}
-            <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+            <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">
               {/* Left Column: Controls & Goal Selection */}
-              <div className="space-y-6">
+              <div className="min-w-0 space-y-6">
                 <DoorSelection
                   doorMode={doorMode}
                   onSelectDoor={setDoorMode}
@@ -148,7 +171,7 @@ export default function App() {
               </div>
 
               {/* Right Column (2 cols wide): The Standard Calculated Path */}
-              <div className="lg:col-span-2">
+              <div className="min-w-0 lg:col-span-2">
                 <BuildPath
                   parts={engineParts}
                   ownedPartIds={ownedPartIds}
@@ -203,26 +226,27 @@ export default function App() {
       </main>
 
       {/* Footer Disclaimer */}
-      <footer className="border-t border-slate-900 bg-slate-950 py-8 text-slate-500 text-xs font-mono">
-        <div className="max-w-7xl mx-auto px-4 text-center space-y-2">
-          <p className="max-w-3xl mx-auto leading-relaxed text-slate-400">
-            <strong>THE DISCLAIMER:</strong> All build paths are calculated from a stock vehicle. Checking off mods you already have only marks your place on that path — it doesn't change the path, recalculate for your specific car, or account for its condition, history, or mileage. You'll still see every step and every precaution, whether you've done it or not. This is reference information, not advice for your individual vehicle.
+      <footer className="bg-ink text-on-dark">
+        <div className="mx-auto max-w-7xl space-y-4 px-4 py-10 sm:px-6 lg:px-8">
+          <Logo />
+          <p className="max-w-3xl text-[16px] text-on-dark">
+            <strong className="font-bold">The disclaimer:</strong> All build paths are calculated from a stock vehicle. Checking off mods you already have only marks your place on that path — it doesn't change the path, recalculate for your specific car, or account for its condition, history, or mileage. You'll still see every step and every precaution, whether you've done it or not. This is reference information, not advice for your individual vehicle.
           </p>
-          <p className="text-[10px] text-slate-600 pt-2">
-            STAGE0 v0.2 · BMW B58 & Infiniti VQ/VR Pilot Edition · Confidential Reference Information
-          </p>
-          {/* Operator entry point. Deliberately plain: hiding the URL is not a
-              control, and pretending otherwise invites treating it as one. The
-              gate is Row Level Security, which returns nothing to anyone who is
-              not the administrator, whether or not they find this link. */}
-          <p className="pt-1">
+          <div className="flex flex-wrap items-center justify-between gap-x-6 gap-y-2 border-t border-dark-border pt-4">
+            <p className="label-ui text-dark-muted">
+              STAGE0 v0.2 · BMW B58 &amp; Infiniti VQ/VR Pilot Edition · Confidential Reference Information
+            </p>
+            {/* Operator entry point. Deliberately plain: hiding the URL is not a
+                control, and pretending otherwise invites treating it as one. The
+                gate is Row Level Security, which returns nothing to anyone who is
+                not the administrator, whether or not they find this link. */}
             <Link
               to="/admin/login"
-              className="text-[10px] text-slate-700 hover:text-slate-500 font-mono uppercase tracking-widest transition-colors"
+              className="inline-flex min-h-[44px] items-center text-[14px] font-semibold uppercase tracking-[1.5px] text-dark-muted hover:text-on-dark"
             >
               Operator sign in
             </Link>
-          </p>
+          </div>
         </div>
       </footer>
 

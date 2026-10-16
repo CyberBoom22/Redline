@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { Navigate, useNavigate } from 'react-router-dom';
-import { Gauge, Loader2, ShieldAlert, ShieldCheck, UserPlus } from 'lucide-react';
+import { Loader2, ShieldAlert, ShieldCheck, UserPlus } from 'lucide-react';
+import { AdminBrand } from './AdminBrand';
 import { requireSupabase, supabase } from '../lib/supabase';
 import { useAuth } from './AuthProvider';
 import { AdminShell } from './AdminShell';
@@ -106,9 +107,9 @@ export const AdminRegister: React.FC = () => {
   if (checking) {
     return (
       <AdminShell title="Administrator registration" configError={configError}>
-        <div className="flex items-center justify-center gap-2 py-6 text-slate-500">
-          <Loader2 className="w-4 h-4 animate-spin" />
-          <span className="font-mono text-xs uppercase tracking-widest">Checking</span>
+        <div className="flex items-center justify-center gap-2 py-6 text-text-2">
+          <Loader2 className="h-4 w-4 animate-spin" aria-hidden="true" />
+          <span className="label-ui">Checking</span>
         </div>
       </AdminShell>
     );
@@ -118,19 +119,17 @@ export const AdminRegister: React.FC = () => {
     return (
       <AdminShell title="Administrator registration" configError={configError}>
         <div className="space-y-3 text-center py-2">
-          <div className="w-10 h-10 rounded-full bg-slate-800 text-slate-400 border border-slate-700 flex items-center justify-center mx-auto">
-            <ShieldCheck className="w-5 h-5" />
-          </div>
-          <h2 className="font-mono font-bold text-sm uppercase tracking-wide text-slate-200">
+          <ShieldCheck className="mx-auto h-6 w-6 text-text-3" aria-hidden="true" />
+          <h2 className="h-section etch text-ink">
             Registration is closed
           </h2>
-          <p className="text-xs text-slate-400 leading-relaxed">
+          <p className="text-[15px] text-text-2">
             This deployment already has its administrator. There is exactly one, and the slot cannot be
             claimed again.
           </p>
           <a
             href="/admin/login"
-            className="inline-block text-xs font-mono uppercase tracking-widest text-red-400 hover:text-red-300"
+            className="btn btn-secondary btn-sm"
           >
             Go to sign in
           </a>
@@ -142,32 +141,22 @@ export const AdminRegister: React.FC = () => {
   return (
     <AdminShell title="Administrator registration" configError={configError}>
       <form onSubmit={handleSubmit} className="space-y-4">
-        <div className="flex items-center gap-3 pb-4 border-b border-slate-800">
-          <div className="w-9 h-9 rounded-lg bg-gradient-to-br from-red-600 to-red-800 text-white flex items-center justify-center ring-1 ring-red-500/30">
-            <Gauge className="w-5 h-5" />
-          </div>
-          <div>
-            <div className="font-mono font-bold text-sm uppercase tracking-wider text-white">
-              Claim administrator
-            </div>
-            <p className="text-xs text-slate-400">This can be done once, and only once.</p>
-          </div>
-        </div>
+        <AdminBrand title="Claim administrator" subtitle="This can be done once, and only once." />
 
-        <label className="block space-y-1.5">
-          <span className="text-[10px] font-mono uppercase tracking-widest text-slate-400">Email</span>
+        <label className="block">
+          <span className="field-label">Email</span>
           <input
             type="email"
             required
             autoComplete="username"
             value={email}
             onChange={(e) => setEmail(e.target.value)}
-            className="w-full bg-slate-950 border border-slate-800 focus:border-red-500/70 focus:outline-none rounded-lg px-3 py-2 text-sm text-slate-100"
+            className="field"
           />
         </label>
 
-        <label className="block space-y-1.5">
-          <span className="text-[10px] font-mono uppercase tracking-widest text-slate-400">Password</span>
+        <label className="block">
+          <span className="field-label">Password</span>
           <input
             type="password"
             required
@@ -175,29 +164,29 @@ export const AdminRegister: React.FC = () => {
             autoComplete="new-password"
             value={password}
             onChange={(e) => setPassword(e.target.value)}
-            className="w-full bg-slate-950 border border-slate-800 focus:border-red-500/70 focus:outline-none rounded-lg px-3 py-2 text-sm text-slate-100"
+            className="field"
           />
-          <span className="block text-[10px] text-slate-500">At least {MIN_PASSWORD_LENGTH} characters.</span>
+          <span className="mt-1 block text-[14px] text-text-2">At least {MIN_PASSWORD_LENGTH} characters.</span>
         </label>
 
         {error && (
-          <div className="flex items-start gap-2 bg-red-950/40 border border-red-800/70 rounded-lg px-3 py-2.5">
-            <ShieldAlert className="w-4 h-4 text-red-400 shrink-0 mt-0.5" />
-            <p className="text-xs text-red-300 leading-relaxed">{error}</p>
+          <div role="alert" className="well flex items-start gap-2 border-accent px-3 py-2.5">
+            <ShieldAlert className="mt-0.5 h-4 w-4 shrink-0 text-accent-deep" aria-hidden="true" />
+            <p className="text-[15px] text-text-2">{error}</p>
           </div>
         )}
         {notice && (
-          <div className="bg-amber-950/40 border border-amber-800/70 rounded-lg px-3 py-2.5">
-            <p className="text-xs text-amber-200 leading-relaxed">{notice}</p>
+          <div role="status" className="well px-3 py-2.5">
+            <p className="text-[15px] text-text-2">{notice}</p>
           </div>
         )}
 
         <button
           type="submit"
           disabled={busy}
-          className="w-full flex items-center justify-center gap-2 bg-red-600 hover:bg-red-500 disabled:opacity-50 disabled:cursor-not-allowed text-white font-mono font-bold text-xs uppercase tracking-widest rounded-lg px-4 py-2.5 transition-colors"
+          className="btn btn-primary btn-sm w-full"
         >
-          {busy ? <Loader2 className="w-4 h-4 animate-spin" /> : <UserPlus className="w-4 h-4" />}
+          {busy ? <Loader2 className="h-4 w-4 animate-spin" aria-hidden="true" /> : <UserPlus className="h-4 w-4" aria-hidden="true" />}
           {busy ? 'Creating' : 'Create administrator'}
         </button>
       </form>

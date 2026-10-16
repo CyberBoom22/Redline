@@ -42,7 +42,7 @@ export const Modal: React.FC<ModalProps> = ({
   footer,
   children,
   maxWidth = 'max-w-2xl',
-  backdropClassName = 'bg-slate-950/85',
+  backdropClassName = 'bg-ink/80',
   panelClassName = '',
   bodyClassName = '',
 }) => {
@@ -71,7 +71,7 @@ export const Modal: React.FC<ModalProps> = ({
 
   return (
     <div
-      className={`fixed inset-0 z-50 overflow-y-auto overscroll-contain backdrop-blur-md ${backdropClassName}`}
+      className={`fixed inset-0 z-50 overflow-y-auto overscroll-contain ${backdropClassName}`}
       onMouseDown={onClose}
     >
       <div className="flex min-h-full items-center justify-center p-4">
@@ -79,7 +79,7 @@ export const Modal: React.FC<ModalProps> = ({
           role="dialog"
           aria-modal="true"
           onMouseDown={(e) => e.stopPropagation()}
-          className={`flex w-full flex-col overflow-hidden rounded-2xl border border-slate-800 bg-slate-900 text-slate-100 shadow-2xl max-h-[calc(100dvh-2rem)] ${maxWidth} ${panelClassName}`}
+          className={`plate flex w-full flex-col overflow-hidden max-h-[calc(100dvh-2rem)] ${maxWidth} ${panelClassName}`}
         >
           {header && <div className="shrink-0">{header}</div>}
           {/* min-h-0 is what allows a flex child to shrink below its content

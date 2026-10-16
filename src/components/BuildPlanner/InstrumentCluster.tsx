@@ -1,5 +1,5 @@
 import React from 'react';
-import { Gauge, AlertTriangle, DollarSign, Wrench, ShieldAlert, ArrowRight, Layers } from 'lucide-react';
+import { Gauge, AlertTriangle, DollarSign, ShieldAlert, Layers } from 'lucide-react';
 
 interface InstrumentClusterProps {
   stockWhp: number;
@@ -30,80 +30,71 @@ export const InstrumentCluster: React.FC<InstrumentClusterProps> = ({
   const isGoalReached = projectedWhp >= goalWhp;
 
   return (
-    <div className="bg-slate-900/90 border border-slate-800 rounded-2xl p-5 shadow-2xl relative overflow-hidden space-y-4">
-      {/* Carbon weave subtle background effect */}
-      <div className="absolute top-0 right-0 w-96 h-96 bg-red-600/5 rounded-full blur-3xl pointer-events-none" />
-
+    <section className="panel-dark space-y-5 p-5 sm:p-6" aria-label="Build totals">
       {/* Top Cockpit Numbers: 3 main numbers at one glance */}
-      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 border-b border-slate-800 pb-4">
+      <div className="grid grid-cols-1 gap-px overflow-hidden rounded-[3px] border border-dark-border bg-dark-border sm:grid-cols-3">
         {/* Metric 1: Projected WHP */}
-        <div className="p-4 rounded-xl bg-slate-950/80 border border-slate-800/80 flex flex-col justify-between relative">
-          <div className="flex items-center justify-between text-xs text-slate-400 font-semibold uppercase tracking-wider">
-            <span>Projected Power</span>
-            <Gauge className="w-4 h-4 text-red-500" />
+        <div className="bg-ink p-4">
+          <div className="flex items-center justify-between">
+            <span className="label-ui text-dark-muted">Projected power</span>
+            <Gauge className="h-4 w-4 text-dark-muted" aria-hidden="true" />
           </div>
           <div className="mt-2 flex items-baseline gap-2">
-            <span className="font-mono text-4xl font-extrabold text-white tracking-tight">
-              {projectedWhp}
-            </span>
-            <span className="text-xs font-bold text-red-400 font-mono">WHP</span>
+            <span className="num text-[34px] leading-none text-on-dark">{projectedWhp}</span>
+            <span className="label-ui text-accent-bright">WHP</span>
           </div>
-          <p className="text-[11px] text-slate-400 mt-1 font-mono">
+          <p className="mt-2 text-[15px] text-dark-muted">
             +{(projectedWhp - stockWhp)} WHP over stock ({stockWhp})
           </p>
         </div>
 
         {/* Metric 2: Target Goal WHP */}
-        <div className="p-4 rounded-xl bg-slate-950/80 border border-slate-800/80 flex flex-col justify-between">
-          <div className="flex items-center justify-between text-xs text-slate-400 font-semibold uppercase tracking-wider">
-            <span>Build Goal</span>
-            <span className="text-[10px] font-mono px-2 py-0.5 rounded bg-slate-800 text-slate-300">Target</span>
+        <div className="bg-ink p-4">
+          <div className="flex items-center justify-between">
+            <span className="label-ui text-dark-muted">Build goal</span>
+            <span className="chip text-dark-muted">Target</span>
           </div>
           <div className="mt-2 flex items-baseline gap-2">
-            <span className="font-mono text-4xl font-extrabold text-slate-200 tracking-tight">
-              {goalWhp}
-            </span>
-            <span className="text-xs font-bold text-slate-400 font-mono">WHP</span>
+            <span className="num text-[34px] leading-none text-on-dark">{goalWhp}</span>
+            <span className="label-ui text-dark-muted">WHP</span>
           </div>
-          <div className="text-[11px] font-mono mt-1 flex items-center justify-between">
-            <span className="text-slate-400">Target status:</span>
-            <span className={`font-bold ${isGoalReached ? 'text-emerald-400' : 'text-amber-400'}`}>
+          <div className="mt-2 flex items-center justify-between gap-2 text-[15px]">
+            <span className="text-dark-muted">Target status:</span>
+            <span className={isGoalReached ? 'font-bold text-on-dark' : 'status-required'}>
               {isGoalReached ? 'Goal Reached' : `${gapWhp} WHP short`}
             </span>
           </div>
         </div>
 
         {/* Metric 3: Parts Total ($) */}
-        <div className="p-4 rounded-xl bg-slate-950/80 border border-slate-800/80 flex flex-col justify-between">
-          <div className="flex items-center justify-between text-xs text-slate-400 font-semibold uppercase tracking-wider">
-            <span>Parts Cost</span>
-            <DollarSign className="w-4 h-4 text-emerald-400" />
+        <div className="bg-ink p-4">
+          <div className="flex items-center justify-between">
+            <span className="label-ui text-dark-muted">Parts cost</span>
+            <DollarSign className="h-4 w-4 text-dark-muted" aria-hidden="true" />
           </div>
-          <div className="mt-2 flex items-baseline gap-1">
-            <span className="font-mono text-4xl font-extrabold text-emerald-400 tracking-tight">
-              ${partsTotal.toLocaleString()}
-            </span>
+          <div className="mt-2">
+            <span className="num text-[34px] leading-none text-on-dark">${partsTotal.toLocaleString()}</span>
           </div>
-          <p className="text-[11px] text-slate-400 mt-1 font-mono">
-            Direct bolt-on parts total
-          </p>
+          <p className="mt-2 text-[15px] text-dark-muted">Direct bolt-on parts total</p>
         </div>
       </div>
 
       {/* Honest Gap Callout & Compare Toggle */}
-      <div className="flex flex-col md:flex-row items-center justify-between gap-4 pt-1">
+      <div className="flex flex-col gap-4 lg:flex-row lg:items-stretch">
         {/* Gap Callout Box */}
-        <div className="w-full md:w-auto flex-1 p-3.5 rounded-xl bg-slate-950/90 border border-slate-800 flex items-center gap-3">
-          <div className={`p-2 rounded-lg ${isGoalReached ? 'bg-emerald-950/80 text-emerald-400' : 'bg-amber-950/80 text-amber-400'} border border-amber-800/30`}>
-            {isGoalReached ? <Gauge className="w-5 h-5" /> : <AlertTriangle className="w-5 h-5" />}
-          </div>
-          <div className="text-xs">
-            <div className="font-bold text-slate-200 uppercase tracking-wide">
-              {isGoalReached 
-                ? 'Goal WHP Target Reached!' 
+        <div className="well-dark flex flex-1 items-start gap-3 p-4">
+          {isGoalReached ? (
+            <Gauge className="mt-0.5 h-5 w-5 shrink-0 text-on-dark" aria-hidden="true" />
+          ) : (
+            <AlertTriangle className="mt-0.5 h-5 w-5 shrink-0 text-accent-bright" aria-hidden="true" />
+          )}
+          <div>
+            <div className="font-bold uppercase tracking-[0.5px] text-on-dark">
+              {isGoalReached
+                ? 'Goal WHP Target Reached!'
                 : `You're ${gapWhp} WHP short — standard bolt-ons are done here.`}
             </div>
-            <p className="text-slate-400 text-[11px] mt-0.5">
+            <p className="mt-0.5 text-[15px] text-dark-muted">
               {isGoalReached
                 ? 'Your build path satisfies the targeted power band. Review risk warnings below.'
                 : 'To close the gap, check upgraded turbo or high ethanol (E85) fuel kits.'}
@@ -112,26 +103,19 @@ export const InstrumentCluster: React.FC<InstrumentClusterProps> = ({
         </div>
 
         {/* Realistic All-In Cost Card & Compare Side-by-Side Switcher */}
-        <div className="flex items-center gap-3 w-full md:w-auto justify-end">
-          <div className="bg-slate-950/90 border border-slate-800 px-4 py-2.5 rounded-xl text-right">
-            <div className="text-[10px] text-slate-400 uppercase font-semibold">
-              Realistic All-In (Parts + Supporting + Labor)
-            </div>
-            <div className="font-mono text-lg font-extrabold text-slate-100">
-              ${allInTotal.toLocaleString()}
-            </div>
+        <div className="flex flex-col gap-3 sm:flex-row sm:items-stretch">
+          <div className="well-dark px-4 py-3 sm:text-right">
+            <div className="label-ui text-dark-muted">Realistic all-in (parts + supporting + labor)</div>
+            <div className="num mt-1 text-[26px] leading-tight text-on-dark">${allInTotal.toLocaleString()}</div>
           </div>
 
           <button
             onClick={onOpenCompareSlider}
             id="compare-slider-btn"
-            className={`px-4 py-3 rounded-xl border text-xs font-bold transition-all flex items-center gap-2 whitespace-nowrap shadow-lg ${
-              showCompareModal
-                ? 'bg-red-600 text-white border-red-500'
-                : 'bg-slate-800 hover:bg-slate-750 text-slate-200 border-slate-700 hover:border-red-500/50'
-            }`}
+            aria-pressed={showCompareModal}
+            className={`btn btn-sm whitespace-nowrap ${showCompareModal ? 'btn-primary' : 'btn-ghost-dark'}`}
           >
-            <Layers className="w-4 h-4 text-red-400" />
+            <Layers className="h-4 w-4" aria-hidden="true" />
             <span>Compare Power vs Exposure</span>
           </button>
         </div>
@@ -139,18 +123,16 @@ export const InstrumentCluster: React.FC<InstrumentClusterProps> = ({
 
       {/* Unacknowledged Gated Warnings Banner if applicable */}
       {unacknowledgedGatedWarningsCount > 0 && (
-        <div className="p-3 rounded-xl bg-red-950/80 border border-red-800/80 text-red-200 text-xs flex items-center justify-between gap-3 animate-pulse">
+        <div className="flex flex-wrap items-center justify-between gap-3 rounded-[3px] border border-accent p-3 text-[15px] text-on-dark">
           <div className="flex items-center gap-2">
-            <ShieldAlert className="w-4 h-4 text-red-400 flex-shrink-0" />
+            <ShieldAlert className="h-5 w-5 shrink-0 text-accent-bright" aria-hidden="true" />
             <span>
-              <strong>{unacknowledgedGatedWarningsCount} Required "Will Break" Warning(s)</strong> need active checkbox acknowledgment before continuing!
+              <strong className="text-accent-bright">{unacknowledgedGatedWarningsCount} Required "Will Break" Warning(s)</strong> need active checkbox acknowledgment before continuing!
             </span>
           </div>
-          <span className="text-[10px] font-mono uppercase bg-red-900 px-2 py-0.5 rounded text-red-200 border border-red-700 font-bold">
-            GATED
-          </span>
+          <span className="chip chip-accent">Gated</span>
         </div>
       )}
-    </div>
+    </section>
   );
 };

@@ -1,7 +1,8 @@
 import React, { useState } from 'react';
 import { EngineId } from '../../types';
 import { ALL_PARTS } from '../../data/parts';
-import { Wrench, AlertTriangle, RefreshCw, CheckCircle, Clock, ShieldCheck, ExternalLink } from 'lucide-react';
+import { AlertTriangle, RefreshCw, CheckCircle, Clock } from 'lucide-react';
+import { PageHeader } from '../billet/PageHeader';
 
 interface PartsCareProps {
   engineId: EngineId;
@@ -18,126 +19,76 @@ export const PartsCare: React.FC<PartsCareProps> = ({ engineId, ownedPartIds }) 
     return p.careType === filterType;
   });
 
+  const FILTERS: { id: typeof filterType; label: string }[] = [
+    { id: 'all', label: 'All Care Types' },
+    { id: 'serviceable', label: 'Serviceable (Clean & Re-Oil)' },
+    { id: 'replace_interval', label: 'Replace-on-Interval' },
+    { id: 'fit_and_forget', label: 'Fit-and-Forget' },
+  ];
+
   return (
     <div className="space-y-6">
       {/* Header Banner */}
-      <div className="bg-slate-900 border border-slate-800 rounded-2xl p-6 shadow-xl space-y-2">
-        <div className="flex items-center gap-2">
-          <Wrench className="w-6 h-6 text-red-500" />
-          <h2 className="text-xl font-bold font-mono text-white uppercase tracking-wider">
-            Parts Care — The Ownership Maintenance Layer
-          </h2>
-        </div>
-        <p className="text-xs text-slate-400 max-w-xl leading-relaxed">
-          The one content type not tied to buying. Sourced from manufacturers: maintenance intervals, wash/re-oil cautions, and spark plug gapping guidelines.
-        </p>
-
+      <PageHeader
+        eyebrow="Parts care"
+        title="Parts Care — The Ownership Maintenance Layer"
+        description="The one content type not tied to buying. Sourced from manufacturers: maintenance intervals, wash/re-oil cautions, and spark plug gapping guidelines."
+      >
         {/* Filter Pills */}
-        <div className="flex items-center gap-2 pt-4 border-t border-slate-800 text-xs font-mono">
-          <button
-            onClick={() => setFilterType('all')}
-            className={`px-3 py-1.5 rounded-lg border font-bold transition-all ${
-              filterType === 'all'
-                ? 'bg-red-600 text-white border-red-500'
-                : 'bg-slate-950 border-slate-800 text-slate-400 hover:text-slate-200'
-            }`}
-          >
-            All Care Types
-          </button>
-          <button
-            onClick={() => setFilterType('serviceable')}
-            className={`px-3 py-1.5 rounded-lg border font-bold transition-all ${
-              filterType === 'serviceable'
-                ? 'bg-red-600 text-white border-red-500'
-                : 'bg-slate-950 border-slate-800 text-slate-400 hover:text-slate-200'
-            }`}
-          >
-            Serviceable (Clean & Re-Oil)
-          </button>
-          <button
-            onClick={() => setFilterType('replace_interval')}
-            className={`px-3 py-1.5 rounded-lg border font-bold transition-all ${
-              filterType === 'replace_interval'
-                ? 'bg-red-600 text-white border-red-500'
-                : 'bg-slate-950 border-slate-800 text-slate-400 hover:text-slate-200'
-            }`}
-          >
-            Replace-on-Interval
-          </button>
-          <button
-            onClick={() => setFilterType('fit_and_forget')}
-            className={`px-3 py-1.5 rounded-lg border font-bold transition-all ${
-              filterType === 'fit_and_forget'
-                ? 'bg-red-600 text-white border-red-500'
-                : 'bg-slate-950 border-slate-800 text-slate-400 hover:text-slate-200'
-            }`}
-          >
-            Fit-and-Forget
-          </button>
+        <span id="care-filter-label" className="field-label">Care type</span>
+        <div role="group" aria-labelledby="care-filter-label" className="flex flex-wrap gap-2">
+          {FILTERS.map((f) => (
+            <button
+              key={f.id}
+              onClick={() => setFilterType(f.id)}
+              aria-pressed={filterType === f.id}
+              className="toggle text-[14px]"
+            >
+              {f.label}
+            </button>
+          ))}
         </div>
-      </div>
+      </PageHeader>
 
       {/* Cards Grid */}
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+      <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
         {filteredParts.map((part) => {
           const isOwned = ownedPartIds.includes(part.id);
 
           const careConfig = {
-            serviceable: {
-              badge: 'TYPE · SERVICEABLE (Clean & Re-Oil)',
-              style: 'bg-blue-950/80 text-blue-400 border-blue-800',
-              icon: RefreshCw
-            },
-            replace_interval: {
-              badge: 'TYPE · REPLACE-ON-INTERVAL',
-              style: 'bg-amber-950/80 text-amber-400 border-amber-800',
-              icon: Clock
-            },
-            fit_and_forget: {
-              badge: 'TYPE · FIT-AND-FORGET',
-              style: 'bg-emerald-950/80 text-emerald-400 border-emerald-800',
-              icon: CheckCircle
-            }
+            serviceable: { badge: 'TYPE · SERVICEABLE (Clean & Re-Oil)', icon: RefreshCw },
+            replace_interval: { badge: 'TYPE · REPLACE-ON-INTERVAL', icon: Clock },
+            fit_and_forget: { badge: 'TYPE · FIT-AND-FORGET', icon: CheckCircle }
           }[part.careType];
 
           const IconComponent = careConfig.icon;
 
           return (
-            <div
+            <article
               key={part.id}
-              className={`p-5 rounded-2xl border bg-slate-900 space-y-3 transition-all ${
-                isOwned ? 'border-red-500/70 shadow-lg' : 'border-slate-800'
-              }`}
+              className={`plate space-y-3 p-5 ${isOwned ? 'outline outline-2 -outline-offset-2 outline-accent' : ''}`}
             >
-              <div className="flex items-center justify-between border-b border-slate-800 pb-2">
-                <span className={`text-[10px] font-mono font-bold px-2 py-0.5 rounded border uppercase ${careConfig.style}`}>
-                  {careConfig.badge}
-                </span>
+              <div className="flex flex-wrap items-center justify-between gap-2 border-b border-black/15 pb-3">
+                <span className="chip whitespace-normal text-text-3">{careConfig.badge}</span>
 
-                {isOwned && (
-                  <span className="text-[10px] font-mono bg-emerald-950 text-emerald-400 px-2 py-0.5 rounded border border-emerald-800 font-bold">
-                    INSTALLED ON YOUR BUILD
-                  </span>
-                )}
+                {isOwned && <span className="chip chip-accent">Installed on your build</span>}
               </div>
 
               <div>
-                <h3 className="font-bold text-base text-white font-mono">{part.name}</h3>
-                <p className="text-xs text-slate-400 font-mono mt-0.5">{part.brand}</p>
+                <h2 className="etch text-[18px] font-bold leading-snug text-ink">{part.name}</h2>
+                <p className="label-ui mt-1 text-text-3">{part.brand}</p>
               </div>
 
               {/* Maintenance Procedure & Warnings */}
-              <div className="p-3.5 bg-slate-950 rounded-xl border border-slate-800 space-y-2 text-xs">
+              <div className="space-y-2 rounded-[3px] bg-ink p-4 text-on-dark">
                 <div className="flex items-start gap-2">
-                  <IconComponent className="w-4 h-4 text-red-400 flex-shrink-0 mt-0.5" />
-                  <p className="text-slate-200 leading-relaxed font-medium">
-                    {part.careInstructions}
-                  </p>
+                  <IconComponent className="mt-1 h-4 w-4 shrink-0 text-dark-muted" aria-hidden="true" />
+                  <p className="text-[15px] font-medium">{part.careInstructions}</p>
                 </div>
 
                 {part.careIntervalMiles && (
-                  <div className="text-[11px] font-mono text-amber-400 pt-1 border-t border-slate-900 flex items-center justify-between">
-                    <span>Service Interval:</span>
+                  <div className="flex flex-wrap items-center justify-between gap-2 border-t border-dark-border pt-2 text-[14px]">
+                    <span className="text-dark-muted">Service Interval:</span>
                     <span className="font-bold">Every {part.careIntervalMiles.toLocaleString()} miles</span>
                   </div>
                 )}
@@ -145,14 +96,14 @@ export const PartsCare: React.FC<PartsCareProps> = ({ engineId, ownedPartIds }) 
 
               {/* MAF Caution banner for serviceable oiled filters */}
               {part.careType === 'serviceable' && (
-                <div className="p-2.5 rounded-lg bg-amber-950/40 border border-amber-800/80 text-[11px] text-amber-200 flex items-center gap-2">
-                  <AlertTriangle className="w-4 h-4 text-amber-400 flex-shrink-0" />
+                <div className="well flex items-start gap-2 border-accent p-3 text-[15px] text-text-2">
+                  <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0 text-accent-deep" aria-hidden="true" />
                   <span>
-                    <strong>Owner Mistake Caution:</strong> Over-oiling cotton filters causes oil droplet migration that coats and contaminates the MAF sensor wire!
+                    <strong className="text-ink">Owner Mistake Caution:</strong> Over-oiling cotton filters causes oil droplet migration that coats and contaminates the MAF sensor wire!
                   </span>
                 </div>
               )}
-            </div>
+            </article>
           );
         })}
       </div>

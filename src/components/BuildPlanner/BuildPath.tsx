@@ -1,6 +1,6 @@
 import React from 'react';
 import { Part, TieredWarning, PartTier } from '../../types';
-import { CheckSquare, Square, AlertOctagon, ExternalLink, Youtube, ShieldAlert, DollarSign, Wrench, ChevronDown, Sparkles } from 'lucide-react';
+import { CheckSquare, Square, AlertOctagon, ExternalLink, Youtube, Wrench } from 'lucide-react';
 
 interface BuildPathProps {
   parts: Part[];
@@ -12,6 +12,15 @@ interface BuildPathProps {
   goalWhp: number;
 }
 
+// Tier label per part. Neutral outlined chips: the palette has no colour per
+// price tier, and the label already says which tier it is.
+const TIER_LABELS: Record<PartTier, string> = {
+  cheap: 'Budget',
+  mid: 'Mid-Tier',
+  expensive: 'Premium',
+  oem: 'OEM Upgrade'
+};
+
 export const BuildPath: React.FC<BuildPathProps> = ({
   parts,
   ownedPartIds,
@@ -21,38 +30,32 @@ export const BuildPath: React.FC<BuildPathProps> = ({
   acknowledgedWarningIds,
   goalWhp
 }) => {
-  // Group parts by category
+  // Group parts by category. Each step is labelled as a machining op:
+  // OP 10, OP 20, … in path order.
   const categories = [
-    { key: 'tune', title: '1. ECU / TCU Flash Calibration' },
-    { key: 'downpipe', title: '2. Exhaust Downpipe (Spool & Flow)' },
-    { key: 'intake', title: '3. Air Intake & Filtration' },
-    { key: 'chargepipe_intercooler', title: '4. Chargepipe & Intercooler Cooling' },
-    { key: 'fueling', title: '5. High Pressure Fueling (HPFP / Flex Fuel)' },
-    { key: 'turbo', title: '6. Upgraded Turbocharger System' },
-    { key: 'drivetrain', title: '7. Drivetrain & Supporting Modifications' }
+    { key: 'tune', title: 'ECU / TCU Flash Calibration' },
+    { key: 'downpipe', title: 'Exhaust Downpipe (Spool & Flow)' },
+    { key: 'intake', title: 'Air Intake & Filtration' },
+    { key: 'chargepipe_intercooler', title: 'Chargepipe & Intercooler Cooling' },
+    { key: 'fueling', title: 'High Pressure Fueling (HPFP / Flex Fuel)' },
+    { key: 'turbo', title: 'Upgraded Turbocharger System' },
+    { key: 'drivetrain', title: 'Drivetrain & Supporting Modifications' }
   ];
 
   return (
-    <div className="bg-slate-900 border border-slate-800 rounded-2xl p-5 space-y-6">
-      <div className="flex items-center justify-between border-b border-slate-800 pb-3">
-        <div>
-          <h3 className="text-base font-bold text-slate-100 font-mono tracking-wide uppercase flex items-center gap-2">
-            <span>Standard Calculated Build Path</span>
-            <span className="text-[10px] bg-red-950 text-red-400 border border-red-800 px-2 py-0.5 rounded font-mono">
-              Stock Baseline Model
-            </span>
-          </h3>
-          <p className="text-xs text-slate-400 mt-0.5">
-            Calculated identically for every stock vehicle. Check boxes to mark inventory you already own.
-          </p>
+    <section className="panel-dark space-y-6 p-5 sm:p-6" aria-labelledby="build-path-title">
+      <div className="space-y-2 border-b border-dark-border pb-4">
+        <div className="flex flex-wrap items-center gap-3">
+          <h2 id="build-path-title" className="h-section">Standard Calculated Build Path</h2>
+          <span className="chip text-dark-muted">Stock Baseline Model</span>
         </div>
+        <p className="text-[15px] text-dark-muted">
+          Calculated identically for every stock vehicle. Check boxes to mark inventory you already own.
+        </p>
       </div>
 
       {/* Path List by Category */}
-      <div className="space-y-6 relative">
-        {/* Continuous line connecting steps */}
-        <div className="absolute left-[21px] top-4 bottom-4 w-0.5 bg-slate-800 pointer-events-none" />
-
+      <ol className="space-y-8">
         {categories.map((cat, idx) => {
           const categoryParts = parts.filter(p => p.category === cat.key);
           if (categoryParts.length === 0) return null;
@@ -61,141 +64,114 @@ export const BuildPath: React.FC<BuildPathProps> = ({
           const hasOwnedInCat = categoryParts.some(p => ownedPartIds.includes(p.id));
 
           return (
-            <div key={cat.key} className="relative pl-10 space-y-3">
-              {/* Category Step Marker */}
-              <div className="absolute left-3 top-1 -translate-x-1/2 w-5 h-5 rounded-full bg-slate-950 border-2 border-red-500 flex items-center justify-center text-[10px] font-mono font-bold text-red-400">
-                {idx + 1}
-              </div>
-
-              <div className="flex items-center justify-between">
-                <h4 className="text-xs font-bold text-slate-300 font-mono uppercase tracking-wider">
-                  {cat.title}
-                </h4>
-                <span className={`text-[10px] font-mono font-semibold px-2 py-0.5 rounded ${
-                  hasOwnedInCat ? 'bg-emerald-950 text-emerald-400 border border-emerald-800' : 'bg-slate-950 text-amber-400 border border-amber-900/60'
-                }`}>
-                  {hasOwnedInCat ? 'INSTALLED / CHECKED' : 'GAP IN PATH'}
+            <li key={cat.key} className="space-y-3">
+              <div className="flex flex-wrap items-end justify-between gap-2">
+                <div>
+                  <div className="op-label">OP {(idx + 1) * 10}</div>
+                  <h3 className="font-bold text-on-dark">{cat.title}</h3>
+                </div>
+                <span className={`text-[13px] ${hasOwnedInCat ? 'status-recommended' : 'status-required'}`}>
+                  {hasOwnedInCat ? 'Installed / Checked' : 'Gap in Path'}
                 </span>
               </div>
 
               {/* List of parts in category */}
-              <div className="space-y-2.5">
+              <ul className="rows-dark border-y border-dark-border">
                 {categoryParts.map((part) => {
                   const isChecked = ownedPartIds.includes(part.id);
 
-                  // Tier styling badge
-                  const tierBadges: Record<PartTier, { label: string; style: string }> = {
-                    cheap: { label: 'Budget', style: 'bg-emerald-950/80 text-emerald-400 border-emerald-800/60' },
-                    mid: { label: 'Mid-Tier', style: 'bg-blue-950/80 text-blue-400 border-blue-800/60' },
-                    expensive: { label: 'Premium', style: 'bg-purple-950/80 text-purple-400 border-purple-800/60' },
-                    oem: { label: 'OEM Upgrade', style: 'bg-slate-800 text-slate-300 border-slate-700' }
-                  };
-
                   return (
-                    <div
-                      key={part.id}
-                      className={`p-4 rounded-xl border transition-all ${
-                        isChecked
-                          ? 'bg-slate-950/90 border-slate-750 text-slate-200'
-                          : 'bg-slate-950/40 border-slate-800/80 text-slate-300 hover:border-slate-700'
-                      }`}
-                    >
-                      <div className="flex items-start justify-between gap-3">
+                    <li key={part.id} className="py-4">
+                      <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
                         {/* Checkbox & Part Title */}
-                        <div className="flex items-start gap-3">
+                        <div className="flex min-w-0 items-start gap-2">
                           <button
                             onClick={() => onTogglePartOwned(part.id)}
-                            className="mt-0.5 text-red-500 hover:text-red-400 transition-colors"
+                            aria-pressed={isChecked}
+                            aria-label={`${isChecked ? 'Unmark' : 'Mark'} ${part.name} as owned`}
+                            className="icon-btn -ml-2.5 -mt-2.5 text-dark-muted hover:text-on-dark"
                           >
                             {isChecked ? (
-                              <CheckSquare className="w-5 h-5 text-emerald-500 fill-emerald-950" />
+                              <CheckSquare className="h-5 w-5 text-accent-bright" aria-hidden="true" />
                             ) : (
-                              <Square className="w-5 h-5 text-slate-600 hover:text-slate-400" />
+                              <Square className="h-5 w-5" aria-hidden="true" />
                             )}
                           </button>
 
-                          <div>
-                            <div className="flex items-center gap-2 flex-wrap">
-                              <span className="font-bold text-sm text-slate-100">{part.name}</span>
-                              <span className={`text-[10px] font-mono px-1.5 py-0.2 rounded border ${tierBadges[part.tier].style}`}>
-                                {tierBadges[part.tier].label}
-                              </span>
+                          <div className="min-w-0">
+                            <div className="flex flex-wrap items-center gap-2">
+                              <span className="font-semibold text-on-dark">{part.name}</span>
+                              <span className="chip text-dark-muted">{TIER_LABELS[part.tier]}</span>
                               {part.isSupportingMod && (
-                                <span className="text-[10px] font-mono bg-amber-950/80 text-amber-400 border border-amber-800/60 px-1.5 py-0.2 rounded">
-                                  REQUIRED SUPPORTING MOD
-                                </span>
+                                <span className="status-required text-[13px]">Required supporting mod</span>
                               )}
                             </div>
 
                             {/* Honest Verdict Line */}
-                            <p className="text-xs text-red-400/90 font-medium italic mt-1 bg-red-950/20 border-l-2 border-red-500/60 pl-2.5 py-0.5">
+                            <p className="mt-1.5 border-l-2 border-accent pl-3 text-[15px] font-medium italic text-on-dark">
                               "{part.verdict}"
                             </p>
 
-                            <p className="text-xs text-slate-400 mt-1.5">
-                              {part.description}
-                            </p>
+                            <p className="mt-1.5 text-[15px] text-dark-muted">{part.description}</p>
                           </div>
                         </div>
 
                         {/* Price & Gains */}
-                        <div className="text-right whitespace-nowrap flex flex-col items-end">
-                          <div className="font-mono text-base font-extrabold text-emerald-400">
-                            ${part.price}
-                          </div>
-                          <div className="text-[10px] font-mono text-slate-400">
-                            +{part.whpGain} WHP gain
-                          </div>
-                          <div className="text-[10px] text-slate-500 font-mono mt-0.5">
+                        <div className="flex shrink-0 flex-row flex-wrap items-baseline gap-x-3 pl-9 sm:flex-col sm:flex-nowrap sm:items-end sm:gap-0 sm:pl-0 sm:text-right">
+                          <div className="num text-[18px] text-on-dark">${part.price}</div>
+                          <div className="whitespace-nowrap text-[14px] text-dark-muted">+{part.whpGain} WHP gain</div>
+                          <div className="whitespace-nowrap text-[14px] text-dark-muted">
                             Est. Labor: ${part.estLaborCost} ({part.installTimeHours}h)
                           </div>
                         </div>
                       </div>
 
                       {/* Part Action links & Care note */}
-                      <div className="mt-3 pt-2.5 border-t border-slate-800/80 flex flex-wrap items-center justify-between gap-2 text-xs">
-                        <div className="flex items-center gap-3">
-                          {part.installGuideUrl && (
-                            <a
-                              href={part.installGuideUrl}
-                              target="_blank"
-                              rel="noreferrer"
-                              className="text-[11px] text-slate-400 hover:text-red-400 flex items-center gap-1 font-mono transition-colors"
-                            >
-                              <ExternalLink className="w-3 h-3" />
-                              <span>Install Guide</span>
-                            </a>
-                          )}
-                          {part.youtubeGuideUrl && (
-                            <a
-                              href={part.youtubeGuideUrl}
-                              target="_blank"
-                              rel="noreferrer"
-                              className="text-[11px] text-slate-400 hover:text-red-400 flex items-center gap-1 font-mono transition-colors"
-                            >
-                              <Youtube className="w-3 h-3 text-red-500" />
-                              <span>YouTube Walkthrough</span>
-                            </a>
+                      {(part.installGuideUrl || part.youtubeGuideUrl || part.careInstructions) && (
+                        <div className="mt-2 flex flex-wrap items-center justify-between gap-x-4 gap-y-1 pl-9 text-[14px]">
+                          <div className="flex flex-wrap items-center gap-x-4">
+                            {part.installGuideUrl && (
+                              <a
+                                href={part.installGuideUrl}
+                                target="_blank"
+                                rel="noreferrer"
+                                className="link text-dark-muted hover:text-on-dark"
+                              >
+                                <ExternalLink className="h-4 w-4" aria-hidden="true" />
+                                <span>Install Guide</span>
+                              </a>
+                            )}
+                            {part.youtubeGuideUrl && (
+                              <a
+                                href={part.youtubeGuideUrl}
+                                target="_blank"
+                                rel="noreferrer"
+                                className="link text-dark-muted hover:text-on-dark"
+                              >
+                                <Youtube className="h-4 w-4" aria-hidden="true" />
+                                <span>YouTube Walkthrough</span>
+                              </a>
+                            )}
+                          </div>
+
+                          {part.careInstructions && (
+                            <div className="well-dark flex items-center gap-2 px-2.5 py-1.5 text-dark-muted">
+                              <Wrench className="h-4 w-4 shrink-0" aria-hidden="true" />
+                              <span>{part.careInstructions}</span>
+                            </div>
                           )}
                         </div>
-
-                        {part.careInstructions && (
-                          <div className="text-[11px] text-slate-400 font-mono bg-slate-900 px-2 py-1 rounded border border-slate-800 flex items-center gap-1.5">
-                            <Wrench className="w-3 h-3 text-amber-400" />
-                            <span>{part.careInstructions}</span>
-                          </div>
-                        )}
-                      </div>
-                    </div>
+                      )}
+                    </li>
                   );
                 })}
-              </div>
+              </ul>
 
               {/* Inline Embedded Warnings for this category if triggered */}
               {warnings.map((w) => {
                 // If warning is triggered at current goal WHP and relates to this category
                 const isAcknowledged = acknowledgedWarningIds.includes(w.id);
-                const isCatMatch = 
+                const isCatMatch =
                   (cat.key === 'drivetrain' && w.id.includes('zf8')) ||
                   (cat.key === 'chargepipe_intercooler' && (w.id.includes('chargepipe') || w.id.includes('heat_soak'))) ||
                   (cat.key === 'turbo' && w.id.includes('rod'));
@@ -205,58 +181,52 @@ export const BuildPath: React.FC<BuildPathProps> = ({
                 return (
                   <div
                     key={w.id}
-                    className={`p-4 rounded-xl border text-xs space-y-2 mt-2 transition-all ${
-                      w.tier === 1
-                        ? 'bg-red-950/70 border-red-600/80 text-red-100 shadow-lg'
-                        : 'bg-amber-950/50 border-amber-700/60 text-amber-100'
-                    }`}
+                    className={`well-dark space-y-3 p-4 ${w.tier === 1 ? 'border-accent' : ''}`}
                   >
-                    <div className="flex items-start justify-between gap-3">
+                    <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
                       <div className="flex items-start gap-2.5">
-                        <AlertOctagon className="w-5 h-5 text-red-400 flex-shrink-0 mt-0.5" />
+                        <AlertOctagon
+                          className={`mt-0.5 h-5 w-5 shrink-0 ${w.tier === 1 ? 'text-accent-bright' : 'text-dark-muted'}`}
+                          aria-hidden="true"
+                        />
                         <div>
-                          <div className="font-extrabold font-mono text-sm uppercase tracking-wide flex items-center gap-2">
-                            <span>TIER {w.tier}: {w.title}</span>
+                          <div className="font-bold uppercase tracking-[0.5px] text-on-dark">
+                            Tier {w.tier}: {w.title}
                           </div>
-                          <p className="text-slate-300 text-xs mt-1 leading-relaxed">
-                            {w.description}
-                          </p>
+                          <p className="mt-1 text-[15px] text-dark-muted">{w.description}</p>
                         </div>
                       </div>
 
                       {/* Cost Contrast: Prevention vs Failure */}
-                      <div className="text-right whitespace-nowrap bg-slate-950/80 p-2.5 rounded-lg border border-slate-800 font-mono text-[11px]">
-                        <div className="text-emerald-400 font-bold">
-                          Preventive: ~${w.preventiveCost}
+                      <div className="shrink-0 whitespace-nowrap pl-7 text-[14px] sm:pl-0 sm:text-right">
+                        <div className="text-on-dark">
+                          Preventive: <span className="num">~${w.preventiveCost}</span>
                         </div>
-                        <div className="text-red-400 font-bold mt-0.5">
-                          Failure: ~${w.failureCost}
+                        <div className="text-accent-bright">
+                          Failure: <span className="num">~${w.failureCost}</span>
                         </div>
                       </div>
                     </div>
 
                     {/* Evidence Source & Active Acknowledge Checkbox */}
-                    <div className="pt-2 border-t border-red-900/40 flex flex-wrap items-center justify-between gap-2">
+                    <div className="flex flex-wrap items-center justify-between gap-2 border-t border-dark-border pt-2">
                       <a
                         href={w.evidenceUrl}
                         target="_blank"
                         rel="noreferrer"
-                        className="text-[11px] text-slate-300 hover:text-white underline flex items-center gap-1 font-mono"
+                        className="link text-[14px] text-dark-muted hover:text-on-dark"
                       >
-                        <ExternalLink className="w-3 h-3 text-red-400" />
+                        <ExternalLink className="h-4 w-4 shrink-0" aria-hidden="true" />
                         <span>Evidence: {w.evidenceSource}</span>
                       </a>
 
                       {w.tier === 1 && (
                         <button
                           onClick={() => onAcknowledgeWarning(w.id)}
-                          className={`flex items-center gap-2 px-3 py-1.5 rounded-lg border text-xs font-bold font-mono transition-all ${
-                            isAcknowledged
-                              ? 'bg-emerald-950 text-emerald-400 border-emerald-700'
-                              : 'bg-red-900 hover:bg-red-800 text-white border-red-600 animate-pulse'
-                          }`}
+                          aria-pressed={isAcknowledged}
+                          className={`btn btn-sm ${isAcknowledged ? 'btn-ghost-dark' : 'btn-primary'}`}
                         >
-                          <CheckSquare className="w-4 h-4" />
+                          <CheckSquare className="h-4 w-4" aria-hidden="true" />
                           <span>
                             {isAcknowledged ? 'Risk Decision Logged & Acknowledged' : 'Acknowledge "Will Break" Decision'}
                           </span>
@@ -266,10 +236,10 @@ export const BuildPath: React.FC<BuildPathProps> = ({
                   </div>
                 );
               })}
-            </div>
+            </li>
           );
         })}
-      </div>
-    </div>
+      </ol>
+    </section>
   );
 };

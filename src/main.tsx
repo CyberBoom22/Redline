@@ -7,6 +7,12 @@ import {RequireAdmin} from './admin/RequireAdmin';
 import {AdminLogin} from './admin/AdminLogin';
 import {AdminRegister} from './admin/AdminRegister';
 import {AdminReport} from './admin/AdminReport';
+// Self-hosted so the CSP's font-src 'self' holds; same files Google Fonts serves.
+import '@fontsource/michroma/400.css';
+import '@fontsource/barlow/400.css';
+import '@fontsource/barlow/500.css';
+import '@fontsource/barlow/600.css';
+import '@fontsource/barlow/700.css';
 import './index.css';
 
 // Path routing in production. Hash routing only for hosts that cannot serve an
