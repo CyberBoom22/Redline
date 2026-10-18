@@ -1,5 +1,6 @@
 import React from 'react';
 import { UserIntent } from '../../types';
+import { getGoalRange } from '../../data/platforms';
 import { Volume2, Wrench, Zap } from 'lucide-react';
 
 interface PowerGoalPickerProps {
@@ -24,8 +25,7 @@ export const PowerGoalPicker: React.FC<PowerGoalPickerProps> = ({
   onIntentChange
 }) => {
   // Preset benchmarks based on engine stock
-  const minWhp = stockWhp;
-  const maxWhp = Math.min(700, stockWhp + 300);
+  const { min: minWhp, max: maxWhp, step } = getGoalRange(stockWhp);
 
   const presets = [
     { label: 'Stock Baseline', whp: stockWhp },
@@ -77,7 +77,7 @@ export const PowerGoalPicker: React.FC<PowerGoalPickerProps> = ({
           type="range"
           min={minWhp}
           max={maxWhp}
-          step={5}
+          step={step}
           value={goalWhp}
           onChange={(e) => onGoalWhpChange(Number(e.target.value))}
           className="range"

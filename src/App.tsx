@@ -1,9 +1,10 @@
-import React, { useState } from 'react';
-import { Link } from 'react-router-dom';
+import React, { useEffect, useState } from 'react';
+import { Link, useHref, useSearchParams } from 'react-router-dom';
 import { VehicleSelection, UserFlowDoor, UserIntent } from './types';
 import { PLATFORMS, DEFAULT_VEHICLE } from './data/platforms';
 import { getPartsForEngine } from './data/parts';
 import { getWarningsForBuild } from './data/warnings';
+import { decodeBuild, encodeBuild, stripBuildParams } from './lib/buildShare';
 
 // Components
 import { Header } from './components/Header';
@@ -17,6 +18,7 @@ import { WarningsPanel } from './components/BuildPlanner/WarningsPanel';
 import { BuildSummaryModal } from './components/BuildSummaryModal';
 import { Hero } from './components/billet/Hero';
 import { Logo } from './components/billet/Logo';
+import { AccountModal, AccountMode } from './account/AccountModal';
 
 // Tabs
 import { PartsMarketplace } from './components/Marketplace/PartsMarketplace';
@@ -26,24 +28,43 @@ import { PartsCare } from './components/PartsCare/PartsCare';
 import { TunersList } from './components/Tuners/TunersList';
 
 export default function App() {
-  const [vehicle, setVehicle] = useState<VehicleSelection>(DEFAULT_VEHICLE);
+  // A Build Card share link restores the exact build it was made from. It is
+  // read once on load; decodeBuild validates everything in it.
+  const [searchParams, setSearchParams] = useSearchParams();
+  const [sharedBuild] = useState(() => decodeBuild(searchParams));
+
+  const [vehicle, setVehicle] = useState<VehicleSelection>(sharedBuild?.vehicle ?? DEFAULT_VEHICLE);
   const [doorMode, setDoorMode] = useState<UserFlowDoor>('goal_first');
   const [intent, setIntent] = useState<UserIntent>('power');
-  const [goalWhp, setGoalWhp] = useState<number>(500);
+  const [goalWhp, setGoalWhp] = useState<number>(sharedBuild?.goalWhp ?? 500);
 
   // Default pre-checked inventory (e.g., stage 1 tune + dropin filter)
-  const [ownedPartIds, setOwnedPartIds] = useState<string[]>([
-    'b58_bootmod3',
-    'b58_oem_filter_dropin'
-  ]);
+  const [ownedPartIds, setOwnedPartIds] = useState<string[]>(
+    sharedBuild?.ownedPartIds ?? ['b58_bootmod3', 'b58_oem_filter_dropin']
+  );
 
-  const [acknowledgedWarningIds, setAcknowledgedWarningIds] = useState<string[]>([]);
+  const [acknowledgedWarningIds, setAcknowledgedWarningIds] = useState<string[]>(
+    sharedBuild?.acknowledgedWarningIds ?? []
+  );
+
+  // Once restored, drop the parameters so the address bar does not keep
+  // describing a build the visitor goes on to change.
+  useEffect(() => {
+    if (sharedBuild) setSearchParams(stripBuildParams(searchParams), { replace: true });
+    // Runs once, on the load that carried the link.
+  }, []);
   const [activeTab, setActiveTab] = useState<'planner' | 'marketplace' | 'dyno' | 'sound' | 'care' | 'tuners'>('planner');
 
   // Modals
   const [isVehicleModalOpen, setIsVehicleModalOpen] = useState<boolean>(false);
-  const [isSummaryModalOpen, setIsSummaryModalOpen] = useState<boolean>(false);
+  // Someone opening a shared build lands on its Build Card.
+  const [isSummaryModalOpen, setIsSummaryModalOpen] = useState<boolean>(sharedBuild !== null);
   const [isCompareModalOpen, setIsCompareModalOpen] = useState<boolean>(false);
+  const [account, setAccount] = useState<{ open: boolean; mode: AccountMode; reason?: string }>({
+    open: false,
+    mode: 'register'
+  });
+  const openAccount = (mode: AccountMode, reason?: string) => setAccount({ open: true, mode, reason });
 
   // Engine Specs lookup
   const currentPlatform = PLATFORMS.find(p => p.id === vehicle.platformId) || PLATFORMS[0];
@@ -92,6 +113,13 @@ export default function App() {
     }
   };
 
+  // Link to this exact build, in whichever router mode is active.
+  const shareHref = useHref({
+    pathname: '/',
+    search: `?${encodeBuild({ vehicle, goalWhp, ownedPartIds, acknowledgedWarningIds })}`,
+  });
+  const shareUrl = new URL(shareHref, window.location.href).toString();
+
   const handleSelectVehicle = (newVehicle: VehicleSelection) => {
     setVehicle(newVehicle);
     const newPlatform = PLATFORMS.find(p => p.id === newVehicle.platformId)!;
@@ -108,6 +136,7 @@ export default function App() {
         activeTab={activeTab}
         setActiveTab={setActiveTab}
         onOpenSummaryModal={() => setIsSummaryModalOpen(true)}
+        onOpenAccount={openAccount}
       />
 
       {/* Main Container */}
@@ -203,6 +232,7 @@ export default function App() {
             stockWtq={stockWtq}
             projectedWhp={projectedWhp}
             goalWhp={goalWhp}
+            onRequestAccount={openAccount}
           />
         )}
 
@@ -268,6 +298,18 @@ export default function App() {
         ownedPartIds={ownedPartIds}
         warnings={warnings}
         acknowledgedWarningIds={acknowledgedWarningIds}
+        stockWhp={stockWhp}
+        shareUrl={shareUrl}
+        onTogglePartOwned={handleTogglePartOwned}
+        onGoalWhpChange={setGoalWhp}
+        onAcknowledgeWarning={handleAcknowledgeWarning}
+      />
+
+      <AccountModal
+        isOpen={account.open}
+        onClose={() => setAccount((prev) => ({ ...prev, open: false }))}
+        initialMode={account.mode}
+        reason={account.reason}
       />
 
       <CompareSlider

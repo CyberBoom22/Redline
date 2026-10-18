@@ -95,6 +95,18 @@ export const PLATFORMS: PlatformInfo[] = [
   }
 ];
 
+export const TRANSMISSIONS: readonly VehicleSelection['transmission'][] = [
+  'ZF8 Speed Auto',
+  '6-Speed Manual',
+  '7-Speed Auto',
+  'DCT',
+];
+
+/** Range of the WHP goal slider for an engine: stock up to +300, capped at 700. */
+export function getGoalRange(stockWhp: number): { min: number; max: number; step: number } {
+  return { min: stockWhp, max: Math.min(700, stockWhp + 300), step: 5 };
+}
+
 export const DEFAULT_VEHICLE: VehicleSelection = {
   platformId: 'b58',
   chassis: 'G20 (3 Series)',

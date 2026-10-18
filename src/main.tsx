@@ -7,6 +7,7 @@ import {RequireAdmin} from './admin/RequireAdmin';
 import {AdminLogin} from './admin/AdminLogin';
 import {AdminRegister} from './admin/AdminRegister';
 import {AdminReport} from './admin/AdminReport';
+import {MemberProvider} from './account/MemberProvider';
 // Self-hosted so the CSP's font-src 'self' holds; same files Google Fonts serves.
 import '@fontsource/michroma/400.css';
 import '@fontsource/barlow/400.css';
@@ -19,8 +20,10 @@ import './index.css';
 // SPA fallback -- a preview build embedded in a single page, for instance.
 const Router = import.meta.env.VITE_HASH_ROUTER === 'true' ? HashRouter : BrowserRouter;
 
-// AuthProvider wraps only the admin branch, so the public app neither performs
-// an auth round trip nor depends on Supabase being configured.
+// AuthProvider (with its is_admin check) wraps only the admin branch. The public
+// app gets MemberProvider instead: it reads any stored member session locally,
+// makes no admin check, and reports accounts unavailable when Supabase is not
+// configured, so the app never depends on it.
 const AdminLayout = () => (
   <AuthProvider>
     <Outlet />
@@ -31,7 +34,14 @@ createRoot(document.getElementById('root')!).render(
   <StrictMode>
     <Router>
       <Routes>
-        <Route path="/" element={<App />} />
+        <Route
+          path="/"
+          element={
+            <MemberProvider>
+              <App />
+            </MemberProvider>
+          }
+        />
         <Route element={<AdminLayout />}>
           <Route path="/admin/register" element={<AdminRegister />} />
           <Route path="/admin/login" element={<AdminLogin />} />

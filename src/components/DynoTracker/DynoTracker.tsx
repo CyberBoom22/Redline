@@ -1,11 +1,20 @@
-import React, { useState } from 'react';
-import { EngineId, VehicleSelection, UserDynoRun, DynoDataPoint } from '../../types';
+import React, { useEffect, useState } from 'react';
+import { VehicleSelection, UserDynoRun } from '../../types';
 import { generateDynoCurveData } from '../../data/platforms';
 import { ResponsiveContainer, LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend } from 'recharts';
-import { Plus, Calendar } from 'lucide-react';
+import { Plus, Calendar, Loader2, ShieldAlert } from 'lucide-react';
 import { Modal } from '../ui/Modal';
 import { ModalBar } from '../billet/ModalBar';
 import { PageHeader } from '../billet/PageHeader';
+import { useMember } from '../../account/MemberProvider';
+import type { AccountMode } from '../../account/AccountModal';
+import { supabase } from '../../lib/supabase';
+import {
+  DYNO_LIMITS, DYNO_TYPES, fetchMemberRuns, insertMemberRuns, localDateKey, sanitizeRun, StoredDynoRun,
+} from '../../lib/dynoRuns';
+import {
+  browserStorage, GUEST_DAILY_LIMIT, guestRunsLeft, readGuestState, recordGuestRun, restoreGuestRuns, takeGuestRuns,
+} from '../../lib/guestDyno';
 
 // Chart ink on the dark panel: greys plus the red, with anodized purple for
 // the boost curve and its axis. Every series also carries its own dash
@@ -27,15 +36,27 @@ interface DynoTrackerProps {
   stockWtq: number;
   projectedWhp: number;
   goalWhp: number;
+  /** Open the register / log-in modal, with a line explaining why. */
+  onRequestAccount: (mode: AccountMode, reason?: string) => void;
 }
+
+/** A run as the log list shows it; the sample baseline is not stored anywhere. */
+type DisplayRun = Omit<UserDynoRun, 'dataPoints'> & { vehicleLabel?: string };
+
+const LIMIT_REASON =
+  "You've used today's free guest dyno log. Create a free account to log unlimited runs, " +
+  'saved to your account. The run you already logged comes with you.';
 
 export const DynoTracker: React.FC<DynoTrackerProps> = ({
   vehicle,
   stockWhp,
   stockWtq,
   projectedWhp,
-  goalWhp
+  goalWhp,
+  onRequestAccount
 }) => {
+  const member = useMember();
+  const isMember = member.session !== null;
   const estimatedTargetWtq = Math.round(goalWhp * 1.05);
   const estimatedCurrentWtq = Math.round(projectedWhp * 1.02);
 
@@ -48,22 +69,70 @@ export const DynoTracker: React.FC<DynoTrackerProps> = ({
     estimatedCurrentWtq
   );
 
-  // User logged dyno runs
-  const [dynoRuns, setDynoRuns] = useState<UserDynoRun[]>([
-    {
-      id: 'run_1',
-      date: '2026-05-12',
-      title: 'Baseline Dynojet Run (Stock Tune & Filter)',
-      dynoType: 'Dynojet',
-      peakWhp: stockWhp + 10,
-      peakWtq: stockWtq + 8,
-      maxBoostPsi: 11.8,
-      fuelType: '93 Octane',
-      ambientTempF: 72,
-      notes: 'Clean baseline pull on 4th gear. Smooth power delivery.',
-      dataPoints: dynoCurveData
+  // Sample baseline shown to everyone. It is not stored and does not count
+  // against the guest allowance.
+  const sampleRun: DisplayRun = {
+    id: 'run_1',
+    date: '2026-05-12',
+    title: 'Baseline Dynojet Run (Stock Tune & Filter)',
+    dynoType: 'Dynojet',
+    peakWhp: stockWhp + 10,
+    peakWtq: stockWtq + 8,
+    maxBoostPsi: 11.8,
+    fuelType: '93 Octane',
+    ambientTempF: 72,
+    notes: 'Clean baseline pull on 4th gear. Smooth power delivery.'
+  };
+
+  // Guests: one run per day, kept in this browser (see lib/guestDyno.ts).
+  const [guest, setGuest] = useState(() => readGuestState(browserStorage()));
+  const guestLeft = guestRunsLeft(guest);
+  // Members: unlimited runs in the dyno_runs table.
+  const [memberRuns, setMemberRuns] = useState<StoredDynoRun[]>([]);
+  const [memberStatus, setMemberStatus] = useState<'idle' | 'loading' | 'error'>('idle');
+  const [saving, setSaving] = useState(false);
+  const [saveError, setSaveError] = useState<string | null>(null);
+  const [limitReached, setLimitReached] = useState(false);
+
+  // On sign-in, move any guest runs into the account, then load the account's
+  // runs. Taking the runs out of storage happens synchronously, before the
+  // first await, so a re-run of this effect cannot insert them twice.
+  const memberId = member.session?.user.id ?? null;
+  useEffect(() => {
+    if (!supabase || !memberId) {
+      setMemberRuns([]);
+      return;
     }
-  ]);
+    const client = supabase;
+    let cancelled = false;
+    const store = browserStorage();
+    const [pending, afterTake] = takeGuestRuns(store, readGuestState(store));
+    setGuest(afterTake);
+    setMemberStatus('loading');
+    (async () => {
+      try {
+        await insertMemberRuns(client, pending);
+      } catch {
+        // Keep them in the browser and try again at the next sign-in.
+        const restored = restoreGuestRuns(store, afterTake, pending);
+        if (!cancelled) setGuest(restored);
+      }
+      try {
+        const runs = await fetchMemberRuns(client);
+        if (!cancelled) {
+          setMemberRuns(runs);
+          setMemberStatus('idle');
+        }
+      } catch {
+        if (!cancelled) setMemberStatus('error');
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [memberId]);
+
+  const dynoRuns: DisplayRun[] = [...(isMember ? memberRuns : guest.runs), sampleRun];
 
   const [showLogModal, setShowLogModal] = useState<boolean>(false);
   const [runTitle, setRunTitle] = useState<string>('');
@@ -71,16 +140,34 @@ export const DynoTracker: React.FC<DynoTrackerProps> = ({
   const [peakWtq, setPeakWtq] = useState<number>(estimatedCurrentWtq);
   const [dynoType, setDynoType] = useState<UserDynoRun['dynoType']>('Dynojet');
   const [fuelType, setFuelType] = useState<string>('93 Octane');
-  const [boostPsi, setBoostPsi] = useState<number>(18);
+  const [boostPsi] = useState<number>(18);
   const [notes, setNotes] = useState<string>('');
 
-  const handleAddRun = (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!runTitle) return;
+  const promptForAccount = () => {
+    if (member.available) onRequestAccount('register', LIMIT_REASON);
+    else setLimitReached(true);
+  };
 
-    const newRun: UserDynoRun = {
+  const handleOpenLog = () => {
+    if (!isMember && guestLeft === 0) {
+      promptForAccount();
+      return;
+    }
+    setSaveError(null);
+    setShowLogModal(true);
+  };
+
+  const closeLogModal = () => {
+    setShowLogModal(false);
+    setRunTitle('');
+    setNotes('');
+  };
+
+  const handleAddRun = async (e: React.FormEvent) => {
+    e.preventDefault();
+    const run = sanitizeRun({
       id: `run_${Date.now()}`,
-      date: new Date().toISOString().split('T')[0],
+      date: localDateKey(),
       title: runTitle,
       dynoType,
       peakWhp,
@@ -89,13 +176,33 @@ export const DynoTracker: React.FC<DynoTrackerProps> = ({
       fuelType,
       ambientTempF: 75,
       notes,
-      dataPoints: generateDynoCurveData(stockWhp, stockWtq, peakWhp, peakWtq)
-    };
+      engineId: vehicle.engineId,
+      vehicleLabel: `${vehicle.year} ${vehicle.trim} (${vehicle.chassis})`
+    });
+    if (!run) return;
 
-    setDynoRuns([newRun, ...dynoRuns]);
-    setShowLogModal(false);
-    setRunTitle('');
-    setNotes('');
+    if (isMember && supabase) {
+      setSaving(true);
+      setSaveError(null);
+      try {
+        const saved = await insertMemberRuns(supabase, [run]);
+        setMemberRuns((prev) => [...saved, ...prev]);
+        closeLogModal();
+      } catch {
+        setSaveError('Could not save the run to your account. Check your connection and try again.');
+      } finally {
+        setSaving(false);
+      }
+      return;
+    }
+
+    if (guestRunsLeft(guest) === 0) {
+      closeLogModal();
+      promptForAccount();
+      return;
+    }
+    setGuest(recordGuestRun(browserStorage(), guest, run));
+    closeLogModal();
   };
 
   return (
@@ -107,7 +214,7 @@ export const DynoTracker: React.FC<DynoTrackerProps> = ({
         description="Real-time overlay comparison of stock horsepower/torque curves against projected build target and logged real-world dyno runs."
         actions={
           <button
-            onClick={() => setShowLogModal(true)}
+            onClick={handleOpenLog}
             id="log-dyno-run-btn"
             className="btn btn-primary w-full whitespace-nowrap md:w-auto"
           >
@@ -115,7 +222,49 @@ export const DynoTracker: React.FC<DynoTrackerProps> = ({
             <span>Log Real Dyno Run</span>
           </button>
         }
-      />
+      >
+        {/* Access strip: what this visitor can log, and the way to log more. */}
+        {!member.loading && (
+          <div aria-live="polite" className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
+            {isMember ? (
+              <p className="text-[16px] text-text-2">
+                <span className="label-ui mr-2 text-anodize-deep">Member</span>
+                Signed in as <strong className="text-ink">{member.session?.user.email}</strong>. Unlimited dyno logs, saved to your account.
+                {memberStatus === 'loading' && <span className="ml-2 inline-flex items-center gap-1"><Loader2 className="h-4 w-4 animate-spin" aria-hidden="true" /> Loading your runs</span>}
+                {memberStatus === 'error' && <span className="ml-2 font-semibold text-accent-deep">Could not load your saved runs. Refresh to try again.</span>}
+              </p>
+            ) : (
+              <>
+                <p className="text-[16px] text-text-2">
+                  <span className="label-ui mr-2 text-anodize-deep">Guest</span>
+                  {GUEST_DAILY_LIMIT} free dyno log per day:{' '}
+                  <strong className="text-ink">
+                    {guestLeft > 0 ? `${guestLeft} left today` : 'used today, resets at midnight'}
+                  </strong>
+                  .{' '}
+                  {member.available
+                    ? guest.runs.length > 0
+                      ? 'Create a free account for unlimited logs. Your guest runs move into it when you sign in.'
+                      : 'Create a free account for unlimited logs, saved to your account.'
+                    : limitReached
+                      ? 'Come back tomorrow to log another run.'
+                      : ''}
+                </p>
+                {member.available && (
+                  <div className="flex shrink-0 flex-wrap gap-2">
+                    <button type="button" onClick={() => onRequestAccount('register')} className="btn btn-secondary btn-sm">
+                      Create free account
+                    </button>
+                    <button type="button" onClick={() => onRequestAccount('login')} className="btn btn-outline btn-sm">
+                      Log in
+                    </button>
+                  </div>
+                )}
+              </>
+            )}
+          </div>
+        )}
+      </PageHeader>
 
       {/* Main Chart Card */}
       <section className="panel-dark space-y-4 p-5 sm:p-6" aria-labelledby="dyno-chart-title">
@@ -193,7 +342,10 @@ export const DynoTracker: React.FC<DynoTrackerProps> = ({
           {dynoRuns.map(run => (
             <article key={run.id} className="well-dark space-y-3 p-4">
               <div className="flex flex-wrap items-baseline justify-between gap-2 border-b border-dark-border pb-2">
-                <h3 className="font-bold text-on-dark">{run.title}</h3>
+                <div className="min-w-0">
+                  <h3 className="font-bold text-on-dark">{run.title}</h3>
+                  {run.vehicleLabel && <p className="text-[14px] text-dark-muted">{run.vehicleLabel}</p>}
+                </div>
                 <span className="label-ui text-dark-muted">{run.date}</span>
               </div>
 
@@ -224,9 +376,15 @@ export const DynoTracker: React.FC<DynoTrackerProps> = ({
       {showLogModal && (
         <Modal
           isOpen={showLogModal}
-          onClose={() => setShowLogModal(false)}
+          onClose={closeLogModal}
           maxWidth="max-w-lg"
-          header={<ModalBar title="Log Chassis Dyno Session" onClose={() => setShowLogModal(false)} />}
+          header={
+            <ModalBar
+              title="Log Chassis Dyno Session"
+              subtitle={isMember ? 'Saved to your account' : `Guest log, ${guestLeft} of ${GUEST_DAILY_LIMIT} left today`}
+              onClose={closeLogModal}
+            />
+          }
           bodyClassName="p-5 sm:p-6"
         >
           <form onSubmit={handleAddRun} className="space-y-4">
@@ -236,6 +394,7 @@ export const DynoTracker: React.FC<DynoTrackerProps> = ({
                 id="dyno-title"
                 type="text"
                 required
+                maxLength={DYNO_LIMITS.title}
                 value={runTitle}
                 onChange={(e) => setRunTitle(e.target.value)}
                 placeholder="e.g., Stage 2 MHD E30 Custom Tune Pull"
@@ -249,6 +408,9 @@ export const DynoTracker: React.FC<DynoTrackerProps> = ({
                 <input
                   id="dyno-whp"
                   type="number"
+                  required
+                  min={DYNO_LIMITS.power.min}
+                  max={DYNO_LIMITS.power.max}
                   value={peakWhp}
                   onChange={(e) => setPeakWhp(Number(e.target.value))}
                   className="field"
@@ -259,6 +421,9 @@ export const DynoTracker: React.FC<DynoTrackerProps> = ({
                 <input
                   id="dyno-wtq"
                   type="number"
+                  required
+                  min={DYNO_LIMITS.power.min}
+                  max={DYNO_LIMITS.power.max}
                   value={peakWtq}
                   onChange={(e) => setPeakWtq(Number(e.target.value))}
                   className="field"
@@ -272,13 +437,12 @@ export const DynoTracker: React.FC<DynoTrackerProps> = ({
                 <select
                   id="dyno-brand"
                   value={dynoType}
-                  onChange={(e) => setDynoType(e.target.value as any)}
+                  onChange={(e) => setDynoType(e.target.value as UserDynoRun['dynoType'])}
                   className="field"
                 >
-                  <option value="Dynojet">Dynojet</option>
-                  <option value="Mustang Dyno">Mustang Dyno</option>
-                  <option value="Mainline">Mainline</option>
-                  <option value="Virtual Dyno">Virtual Dyno</option>
+                  {DYNO_TYPES.map((type) => (
+                    <option key={type} value={type}>{type}</option>
+                  ))}
                 </select>
               </div>
               <div>
@@ -286,6 +450,7 @@ export const DynoTracker: React.FC<DynoTrackerProps> = ({
                 <input
                   id="dyno-fuel"
                   type="text"
+                  maxLength={DYNO_LIMITS.fuelType}
                   value={fuelType}
                   onChange={(e) => setFuelType(e.target.value)}
                   placeholder="93 Oct, E30, E85"
@@ -298,6 +463,7 @@ export const DynoTracker: React.FC<DynoTrackerProps> = ({
               <label htmlFor="dyno-notes" className="field-label">Session Notes & Ambient Temp</label>
               <textarea
                 id="dyno-notes"
+                maxLength={DYNO_LIMITS.notes}
                 value={notes}
                 onChange={(e) => setNotes(e.target.value)}
                 placeholder="Ambient temperature, boost psi, tuner feedback..."
@@ -305,12 +471,20 @@ export const DynoTracker: React.FC<DynoTrackerProps> = ({
               />
             </div>
 
+            {saveError && (
+              <div role="alert" className="well flex items-start gap-2 border-accent px-3 py-2.5">
+                <ShieldAlert className="mt-0.5 h-4 w-4 shrink-0 text-accent-deep" aria-hidden="true" />
+                <p className="text-[15px] text-text-2">{saveError}</p>
+              </div>
+            )}
+
             <div className="flex flex-wrap items-center justify-end gap-3 pt-2">
-              <button type="button" onClick={() => setShowLogModal(false)} className="btn btn-outline btn-sm">
+              <button type="button" onClick={closeLogModal} className="btn btn-outline btn-sm">
                 Cancel
               </button>
-              <button type="submit" className="btn btn-primary btn-sm">
-                Save Dyno Log
+              <button type="submit" disabled={saving} className="btn btn-primary btn-sm">
+                {saving && <Loader2 className="h-4 w-4 animate-spin" aria-hidden="true" />}
+                {saving ? 'Saving' : 'Save Dyno Log'}
               </button>
             </div>
           </form>

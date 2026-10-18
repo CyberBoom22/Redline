@@ -14,6 +14,39 @@ bun run build
 **The public app needs no account and no Supabase configuration.** The planner,
 catalog, warnings, sound hub, dyno tracker and tuner list all work signed out.
 
+## Member accounts
+
+Accounts are optional and exist to unlock the dyno log:
+
+| | Guest | Member |
+| --- | --- | --- |
+| Dyno logs | 1 per calendar day | Unlimited |
+| Where runs live | This browser only | `dyno_runs` table, any device |
+
+The guest allowance lives in `localStorage` (`src/lib/guestDyno.ts`). It is a
+nudge, not a control: clearing site data or opening a private window resets
+it, and that is accepted. Nothing about a guest reaches the server, and no IP
+address or fingerprint is used to count them. When a guest signs in, the runs
+they logged in that browser move into their account.
+
+Members register and log in from the header or the dyno tab. Each
+`dyno_runs` row belongs to one account: RLS lets a member read and insert their
+own runs and nothing else, and the CHECK constraints mirror `sanitizeRun()` in
+`src/lib/dynoRuns.ts`.
+
+Supabase settings this needs (**Authentication → Providers → Email** and
+**Authentication → URL Configuration**):
+
+- **Email signups enabled.** Members could not register otherwise.
+- **"Confirm email" on.** New members confirm their address before logging in.
+  Register the administrator first: that step needs confirmation off (see
+  below), so turn it on afterwards.
+- **Site URL** set to the deployed origin (for example `https://test.stage0.us`),
+  so the confirmation link brings people back to the site.
+
+Without Supabase configured, account buttons are hidden and guests keep their
+one log per day.
+
 ## Admin scrape report
 
 There is exactly one administrator account, and only that account can see the
@@ -60,6 +93,7 @@ Or paste each file into the dashboard's **SQL Editor** and run it, in order:
 3. `supabase/migrations/20260909000003_vehicles.sql`
 4. `supabase/migrations/20260909000004_revoke_trigger_function_execute.sql`
 5. `supabase/migrations/20260909000005_append_only_truncate_guard.sql`
+6. `supabase/migrations/20261018000001_dyno_runs.sql`
 
 ### 3. Register the one administrator
 
@@ -71,11 +105,12 @@ to claim as. The registration screen detects this and says so.
 Then visit `/admin/register`, enter an email and password, and submit. The page
 calls `signUp` and immediately calls `claim_admin()`.
 
-**After it succeeds, disable email signups in the Supabase dashboard.** A second
-signup would only ever create a powerless account — `claim_admin()` guarantees
-that, and RLS shows such an account nothing — but closing the door is still the
-right end state. Visiting `/admin/register` again shows "Registration is
-closed".
+**After it succeeds, turn "Confirm email" back on** for member accounts (see
+[Member accounts](#member-accounts)). Leave email signups enabled: members
+register through them. Every later signup is an ordinary member account —
+`claim_admin()` inserts only into an empty table, so no signup can become the
+administrator, and RLS shows a member only their own dyno runs. Visiting
+`/admin/register` again shows "Registration is closed".
 
 ### 4. Verify the gate
 
