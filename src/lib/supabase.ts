@@ -10,7 +10,8 @@ import { createClient, SupabaseClient } from '@supabase/supabase-js';
  * Configuration is checked once, at module load. A missing variable produces a
  * named error the admin screens surface verbatim, rather than a client built
  * from `undefined` that fails later with something unreadable. The public app
- * does not import this module, so an unconfigured deployment still serves the
+ * uses it only for optional member accounts and treats a null client as
+ * "accounts unavailable", so an unconfigured deployment still serves the
  * planner, catalog and the rest normally.
  */
 

@@ -18,6 +18,7 @@ import { WarningsPanel } from './components/BuildPlanner/WarningsPanel';
 import { BuildSummaryModal } from './components/BuildSummaryModal';
 import { Hero } from './components/billet/Hero';
 import { Logo } from './components/billet/Logo';
+import { AccountModal, AccountMode } from './account/AccountModal';
 
 // Tabs
 import { PartsMarketplace } from './components/Marketplace/PartsMarketplace';
@@ -59,6 +60,11 @@ export default function App() {
   // Someone opening a shared build lands on its Build Card.
   const [isSummaryModalOpen, setIsSummaryModalOpen] = useState<boolean>(sharedBuild !== null);
   const [isCompareModalOpen, setIsCompareModalOpen] = useState<boolean>(false);
+  const [account, setAccount] = useState<{ open: boolean; mode: AccountMode; reason?: string }>({
+    open: false,
+    mode: 'register'
+  });
+  const openAccount = (mode: AccountMode, reason?: string) => setAccount({ open: true, mode, reason });
 
   // Engine Specs lookup
   const currentPlatform = PLATFORMS.find(p => p.id === vehicle.platformId) || PLATFORMS[0];
@@ -130,6 +136,7 @@ export default function App() {
         activeTab={activeTab}
         setActiveTab={setActiveTab}
         onOpenSummaryModal={() => setIsSummaryModalOpen(true)}
+        onOpenAccount={openAccount}
       />
 
       {/* Main Container */}
@@ -225,6 +232,7 @@ export default function App() {
             stockWtq={stockWtq}
             projectedWhp={projectedWhp}
             goalWhp={goalWhp}
+            onRequestAccount={openAccount}
           />
         )}
 
@@ -295,6 +303,13 @@ export default function App() {
         onTogglePartOwned={handleTogglePartOwned}
         onGoalWhpChange={setGoalWhp}
         onAcknowledgeWarning={handleAcknowledgeWarning}
+      />
+
+      <AccountModal
+        isOpen={account.open}
+        onClose={() => setAccount((prev) => ({ ...prev, open: false }))}
+        initialMode={account.mode}
+        reason={account.reason}
       />
 
       <CompareSlider
