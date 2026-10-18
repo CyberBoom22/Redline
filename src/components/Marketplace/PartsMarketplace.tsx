@@ -1,7 +1,8 @@
 import React, { useState } from 'react';
 import { Part, PartCategory, PartTier, EngineId } from '../../types';
 import { ALL_PARTS } from '../../data/parts';
-import { ShoppingBag, Search, ExternalLink, Youtube, Wrench, Filter, Tag, Check, CheckSquare, Square } from 'lucide-react';
+import { Search, ExternalLink, Youtube, CheckSquare, Square } from 'lucide-react';
+import { PageHeader } from '../billet/PageHeader';
 
 interface PartsMarketplaceProps {
   engineId: EngineId;
@@ -45,59 +46,52 @@ export const PartsMarketplace: React.FC<PartsMarketplaceProps> = ({
   return (
     <div className="space-y-6">
       {/* Header Banner */}
-      <div className="bg-slate-900 border border-slate-800 rounded-2xl p-6 shadow-xl relative overflow-hidden">
-        <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
-          <div>
-            <div className="flex items-center gap-2">
-              <ShoppingBag className="w-6 h-6 text-red-500" />
-              <h2 className="text-xl font-bold font-mono text-white uppercase tracking-wider">
-                Curated Performance Parts Catalog
-              </h2>
-            </div>
-            <p className="text-xs text-slate-400 mt-1 max-w-xl">
-              Curated performance hardware with honest per-part verdict lines, real install time estimates, manufacturer guides, and parts care intervals.
-            </p>
-          </div>
-
-          {/* Search Box */}
-          <div className="relative w-full md:w-64">
-            <Search className="w-4 h-4 text-slate-500 absolute left-3 top-3" />
+      <PageHeader
+        eyebrow="Parts catalog"
+        title="Curated Performance Parts Catalog"
+        description="Curated performance hardware with honest per-part verdict lines, real install time estimates, manufacturer guides, and parts care intervals."
+        actions={
+          <div className="relative w-full md:w-72">
+            <label htmlFor="parts-search" className="field-label">Search</label>
+            <Search className="pointer-events-none absolute bottom-3.5 left-3 h-4 w-4 text-text-3" aria-hidden="true" />
             <input
+              id="parts-search"
               type="text"
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
               placeholder="Search parts, brands..."
-              className="w-full bg-slate-950 border border-slate-800 rounded-xl pl-9 pr-3 py-2 text-xs text-white placeholder-slate-500 focus:outline-none focus:border-red-500"
+              className="field pl-9"
             />
           </div>
-        </div>
-
+        }
+      >
         {/* Filters Bar */}
-        <div className="mt-6 pt-4 border-t border-slate-800 flex flex-wrap items-center justify-between gap-3">
+        <div className="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
           {/* Category Tabs */}
-          <div className="flex items-center gap-1.5 overflow-x-auto scrollbar-none pb-1 text-xs">
-            {categories.map(cat => (
-              <button
-                key={cat.id}
-                onClick={() => setSelectedCategory(cat.id)}
-                className={`px-3 py-1.5 rounded-lg border font-medium whitespace-nowrap transition-all ${
-                  selectedCategory === cat.id
-                    ? 'bg-red-600 text-white border-red-500 font-bold shadow-md'
-                    : 'bg-slate-950 border-slate-800 text-slate-400 hover:text-slate-200'
-                }`}
-              >
-                {cat.label}
-              </button>
-            ))}
+          <div className="min-w-0">
+            <span id="category-filter-label" className="field-label">Category</span>
+            <div role="group" aria-labelledby="category-filter-label" className="scroll-x -mx-1 flex gap-2 px-1 pb-1">
+              {categories.map(cat => (
+                <button
+                  key={cat.id}
+                  onClick={() => setSelectedCategory(cat.id)}
+                  aria-pressed={selectedCategory === cat.id}
+                  className="toggle shrink-0 whitespace-nowrap text-[14px]"
+                >
+                  {cat.label}
+                </button>
+              ))}
+            </div>
           </div>
 
           {/* Tier Filter */}
-          <div className="flex items-center gap-2 text-xs">
-            <span className="text-slate-400 font-mono text-[11px]">Tier:</span>
+          <div className="w-full lg:w-72 lg:shrink-0">
+            <label htmlFor="tier-filter" className="field-label">Tier</label>
             <select
+              id="tier-filter"
               value={selectedTier}
               onChange={(e) => setSelectedTier(e.target.value)}
-              className="bg-slate-950 border border-slate-800 rounded-lg px-2.5 py-1 text-xs text-slate-200 font-medium focus:outline-none focus:border-red-500"
+              className="field"
             >
               <option value="all">All Tiers (Cheap / Mid / Expensive / OEM)</option>
               <option value="cheap">Cheap / Budget</option>
@@ -107,12 +101,12 @@ export const PartsMarketplace: React.FC<PartsMarketplaceProps> = ({
             </select>
           </div>
         </div>
-      </div>
+      </PageHeader>
 
       {/* Parts Grid */}
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+      <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
         {filteredParts.length === 0 ? (
-          <div className="col-span-full p-8 text-center text-slate-400 bg-slate-900 rounded-2xl border border-slate-800">
+          <div className="plate col-span-full p-8 text-center text-text-2">
             No parts match your filter criteria. Try adjusting your search query.
           </div>
         ) : (
@@ -127,65 +121,55 @@ export const PartsMarketplace: React.FC<PartsMarketplaceProps> = ({
             }[part.tier];
 
             return (
-              <div
+              <article
                 key={part.id}
-                className={`bg-slate-900 border rounded-2xl p-5 space-y-4 transition-all flex flex-col justify-between ${
-                  isOwned
-                    ? 'border-emerald-700/80 bg-slate-900/90 shadow-lg'
-                    : 'border-slate-800 hover:border-slate-700'
+                className={`panel-dark flex flex-col justify-between gap-4 p-5 ${
+                  isOwned ? 'outline outline-2 -outline-offset-2 outline-accent' : ''
                 }`}
               >
-                <div className="space-y-2">
+                <div className="space-y-3">
                   <div className="flex items-start justify-between gap-3">
-                    <div>
-                      <div className="flex items-center gap-2 flex-wrap">
-                        <span className="text-xs font-mono font-bold text-red-400 uppercase">{part.brand}</span>
-                        <span className="text-[10px] font-mono px-2 py-0.2 rounded bg-slate-800 text-slate-300 border border-slate-700">
-                          {tierBadge}
-                        </span>
+                    <div className="min-w-0">
+                      <div className="flex flex-wrap items-center gap-2">
+                        <span className="label-ui text-accent-bright">{part.brand}</span>
+                        <span className={`chip ${part.tier === 'expensive' ? 'text-anodize-bright' : 'text-dark-muted'}`}>{tierBadge}</span>
                       </div>
-                      <h3 className="font-bold text-base text-white mt-0.5">{part.name}</h3>
+                      <h2 className="mt-1 text-[18px] font-bold leading-snug text-on-dark">{part.name}</h2>
                     </div>
 
-                    <div className="text-right whitespace-nowrap">
-                      <div className="font-mono text-xl font-black text-emerald-400">${part.price}</div>
-                      <div className="text-[10px] text-slate-400 font-mono">+{part.whpGain} WHP Gain</div>
+                    <div className="shrink-0 text-right">
+                      <div className="num text-[22px] text-on-dark">${part.price}</div>
+                      <div className="text-[14px] text-dark-muted">+{part.whpGain} WHP Gain</div>
                     </div>
                   </div>
 
                   {/* Verdict Line */}
-                  <div className="bg-slate-950 p-2.5 rounded-xl border border-slate-800">
-                    <span className="text-[10px] font-mono uppercase font-bold text-slate-400 block mb-0.5">
-                      STAGE0 HONEST VERDICT:
-                    </span>
-                    <p className="text-xs text-red-300 italic font-medium">
-                      "{part.verdict}"
-                    </p>
+                  <div className="well-dark p-3">
+                    <span className="label-ui mb-1 block text-dark-muted">Stage0 honest verdict:</span>
+                    <p className="text-[15px] font-medium italic text-on-dark">"{part.verdict}"</p>
                   </div>
 
-                  <p className="text-xs text-slate-300 leading-relaxed">
-                    {part.description}
-                  </p>
+                  <p className="text-[15px] text-dark-muted">{part.description}</p>
                 </div>
 
                 {/* Specs Footer */}
-                <div className="space-y-3 pt-3 border-t border-slate-800">
-                  <div className="flex items-center justify-between text-[11px] text-slate-400 font-mono">
+                <div className="space-y-2 border-t border-dark-border pt-3">
+                  <div className="flex flex-wrap items-center justify-between gap-x-4 text-[14px] text-dark-muted">
                     <span>Install Labor: ~${part.estLaborCost} ({part.installTimeHours}h)</span>
-                    <span className="text-slate-300">Difficulty: {part.difficulty}</span>
+                    <span className="text-on-dark">Difficulty: {part.difficulty}</span>
                   </div>
 
                   {/* Buttons & Checkbox */}
-                  <div className="flex items-center justify-between gap-2 flex-wrap pt-1">
-                    <div className="flex items-center gap-2">
+                  <div className="flex flex-wrap items-center justify-between gap-2">
+                    <div className="flex flex-wrap items-center gap-x-4">
                       {part.installGuideUrl && (
                         <a
                           href={part.installGuideUrl}
                           target="_blank"
                           rel="noreferrer"
-                          className="px-2.5 py-1 bg-slate-950 hover:bg-slate-800 text-slate-300 text-[11px] font-mono rounded-lg border border-slate-800 flex items-center gap-1 transition-colors"
+                          className="link text-[14px] text-dark-muted hover:text-on-dark"
                         >
-                          <ExternalLink className="w-3 h-3 text-red-400" />
+                          <ExternalLink className="h-4 w-4" aria-hidden="true" />
                           <span>Guide</span>
                         </a>
                       )}
@@ -194,9 +178,9 @@ export const PartsMarketplace: React.FC<PartsMarketplaceProps> = ({
                           href={part.youtubeGuideUrl}
                           target="_blank"
                           rel="noreferrer"
-                          className="px-2.5 py-1 bg-slate-950 hover:bg-slate-800 text-slate-300 text-[11px] font-mono rounded-lg border border-slate-800 flex items-center gap-1 transition-colors"
+                          className="link text-[14px] text-dark-muted hover:text-on-dark"
                         >
-                          <Youtube className="w-3 h-3 text-red-500" />
+                          <Youtube className="h-4 w-4" aria-hidden="true" />
                           <span>YouTube</span>
                         </a>
                       )}
@@ -204,18 +188,15 @@ export const PartsMarketplace: React.FC<PartsMarketplaceProps> = ({
 
                     <button
                       onClick={() => onTogglePartOwned(part.id)}
-                      className={`px-3 py-1.5 rounded-xl font-mono text-xs font-bold transition-all flex items-center gap-1.5 ${
-                        isOwned
-                          ? 'bg-emerald-950 text-emerald-400 border border-emerald-700'
-                          : 'bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700'
-                      }`}
+                      aria-pressed={isOwned}
+                      className={`btn btn-sm ${isOwned ? 'btn-ghost-dark' : 'btn-primary'}`}
                     >
-                      {isOwned ? <CheckSquare className="w-4 h-4 text-emerald-400" /> : <Square className="w-4 h-4" />}
+                      {isOwned ? <CheckSquare className="h-4 w-4" aria-hidden="true" /> : <Square className="h-4 w-4" aria-hidden="true" />}
                       <span>{isOwned ? 'Added to Build' : 'Add to Build'}</span>
                     </button>
                   </div>
                 </div>
-              </div>
+              </article>
             );
           })
         )}

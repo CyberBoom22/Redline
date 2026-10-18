@@ -1,6 +1,6 @@
 import React from 'react';
 import { UserIntent } from '../../types';
-import { Flame, Volume2, Wrench, Zap } from 'lucide-react';
+import { Volume2, Wrench, Zap } from 'lucide-react';
 
 interface PowerGoalPickerProps {
   stockWhp: number;
@@ -9,6 +9,12 @@ interface PowerGoalPickerProps {
   intent: UserIntent;
   onIntentChange: (intent: UserIntent) => void;
 }
+
+const INTENTS: { id: UserIntent; label: string; Icon: typeof Zap }[] = [
+  { id: 'power', label: 'Power Goal', Icon: Zap },
+  { id: 'sound', label: 'Sound & Exhaust', Icon: Volume2 },
+  { id: 'repair', label: 'Repair & Care', Icon: Wrench },
+];
 
 export const PowerGoalPicker: React.FC<PowerGoalPickerProps> = ({
   stockWhp,
@@ -30,99 +36,67 @@ export const PowerGoalPicker: React.FC<PowerGoalPickerProps> = ({
   ];
 
   return (
-    <div className="bg-slate-900 border border-slate-800 rounded-2xl p-5 space-y-5">
+    <section className="plate space-y-5 p-5">
       {/* Intent Branch Picker */}
       <div className="space-y-2">
-        <div className="flex items-center justify-between">
-          <label className="text-xs font-semibold text-slate-400 uppercase tracking-wider">
-            Why Are You Here Today?
-          </label>
-          <span className="text-[10px] text-slate-500 font-mono">PRD Section 01</span>
+        <div className="flex items-center justify-between gap-2">
+          <h2 id="intent-heading" className="label-ui etch text-text-3">Why Are You Here Today?</h2>
+          <span className="label-ui text-text-3">PRD Section 01</span>
         </div>
-        <div className="grid grid-cols-3 gap-2">
-          <button
-            onClick={() => onIntentChange('power')}
-            id="intent-power"
-            className={`py-2.5 px-3 rounded-xl border text-xs font-bold transition-all flex items-center justify-center gap-2 ${
-              intent === 'power'
-                ? 'bg-red-950/60 border-red-500 text-white shadow-md'
-                : 'bg-slate-950 border-slate-800 text-slate-400 hover:text-slate-200'
-            }`}
-          >
-            <Zap className="w-3.5 h-3.5 text-red-500" />
-            <span>Power Goal</span>
-          </button>
-
-          <button
-            onClick={() => onIntentChange('sound')}
-            id="intent-sound"
-            className={`py-2.5 px-3 rounded-xl border text-xs font-bold transition-all flex items-center justify-center gap-2 ${
-              intent === 'sound'
-                ? 'bg-red-950/60 border-red-500 text-white shadow-md'
-                : 'bg-slate-950 border-slate-800 text-slate-400 hover:text-slate-200'
-            }`}
-          >
-            <Volume2 className="w-3.5 h-3.5 text-red-500" />
-            <span>Sound & Exhaust</span>
-          </button>
-
-          <button
-            onClick={() => onIntentChange('repair')}
-            id="intent-repair"
-            className={`py-2.5 px-3 rounded-xl border text-xs font-bold transition-all flex items-center justify-center gap-2 ${
-              intent === 'repair'
-                ? 'bg-red-950/60 border-red-500 text-white shadow-md'
-                : 'bg-slate-950 border-slate-800 text-slate-400 hover:text-slate-200'
-            }`}
-          >
-            <Wrench className="w-3.5 h-3.5 text-red-500" />
-            <span>Repair & Care</span>
-          </button>
+        <div role="group" aria-labelledby="intent-heading" className="grid grid-cols-1 gap-2 sm:grid-cols-3 lg:grid-cols-1">
+          {INTENTS.map(({ id, label, Icon }) => (
+            <button
+              key={id}
+              onClick={() => onIntentChange(id)}
+              id={`intent-${id}`}
+              aria-pressed={intent === id}
+              className="toggle justify-center text-[14px] font-bold"
+            >
+              <Icon className={`h-4 w-4 ${intent === id ? 'text-accent-bright' : 'text-accent-deep'}`} aria-hidden="true" />
+              <span>{label}</span>
+            </button>
+          ))}
         </div>
       </div>
 
       {/* Target Horsepower Slider */}
-      <div className="space-y-3 pt-2 border-t border-slate-800">
-        <div className="flex items-center justify-between">
-          <div className="flex items-center gap-2">
-            <Flame className="w-4 h-4 text-red-500" />
-            <span className="text-xs font-bold text-slate-200 uppercase tracking-wide">
-              Target Wheel Horsepower (WHP)
-            </span>
-          </div>
-          <div className="font-mono text-2xl font-extrabold text-red-500 bg-red-950/50 border border-red-900/60 px-3 py-1 rounded-xl">
-            {goalWhp} <span className="text-xs text-slate-400 font-normal">WHP</span>
+      <div className="space-y-3 border-t border-black/15 pt-4">
+        <div className="flex flex-wrap items-center justify-between gap-2">
+          <label htmlFor="goal-whp-range" className="font-bold uppercase tracking-[0.5px] text-ink">
+            Target Wheel Horsepower (WHP)
+          </label>
+          <div className="rounded-[3px] bg-ink px-3 py-1.5 text-on-dark">
+            <span className="num text-[22px]">{goalWhp}</span>{' '}
+            <span className="label-ui text-dark-muted">WHP</span>
           </div>
         </div>
 
         {/* Range Input Slider */}
         <input
+          id="goal-whp-range"
           type="range"
           min={minWhp}
           max={maxWhp}
           step={5}
           value={goalWhp}
           onChange={(e) => onGoalWhpChange(Number(e.target.value))}
-          className="w-full h-2 bg-slate-950 rounded-lg appearance-none cursor-pointer accent-red-600 focus:outline-none"
+          className="range"
         />
 
         {/* Quick Presets */}
-        <div className="flex flex-wrap items-center gap-1.5 pt-1">
+        <div className="flex flex-wrap items-center gap-2">
           {presets.map((preset) => (
             <button
               key={preset.whp}
               onClick={() => onGoalWhpChange(preset.whp)}
-              className={`px-2.5 py-1 rounded-lg text-[11px] font-mono font-medium transition-all border ${
-                goalWhp === preset.whp
-                  ? 'bg-red-600 text-white border-red-500 font-bold'
-                  : 'bg-slate-950 text-slate-400 border-slate-800 hover:text-slate-200 hover:border-slate-700'
-              }`}
+              aria-pressed={goalWhp === preset.whp}
+              className="toggle px-3 text-[14px]"
             >
               {preset.label} ({preset.whp} WHP)
             </button>
           ))}
         </div>
       </div>
-    </div>
+    </section>
   );
 };

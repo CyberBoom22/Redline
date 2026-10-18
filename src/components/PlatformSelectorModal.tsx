@@ -2,8 +2,9 @@ import React, { useState } from 'react';
 import { VehicleSelection, PlatformId, EngineId } from '../types';
 import { PLATFORMS } from '../data/platforms';
 import { normalizeVin, validateVin } from '../lib/vin';
-import { X, Check, Car, Cpu, Search, AlertCircle } from 'lucide-react';
+import { Check, Search, AlertCircle } from 'lucide-react';
 import { Modal } from './ui/Modal';
+import { ModalBar } from './billet/ModalBar';
 
 interface PlatformSelectorModalProps {
   isOpen: boolean;
@@ -98,36 +99,13 @@ export const PlatformSelectorModal: React.FC<PlatformSelectorModalProps> = ({
       isOpen={isOpen}
       onClose={onClose}
       maxWidth="max-w-2xl"
-      backdropClassName="bg-slate-950/80"
-      header={
-        <div className="flex items-center justify-between px-6 py-4 border-b border-slate-800 bg-slate-950">
-          <div className="flex items-center gap-2.5">
-            <Car className="w-5 h-5 text-red-500" />
-            <h2 className="text-lg font-bold font-mono tracking-wide text-white uppercase">
-              Select Your Engine & Platform
-            </h2>
-          </div>
-          <button
-            onClick={onClose}
-            className="text-slate-400 hover:text-slate-200 p-1 rounded-lg hover:bg-slate-800 transition-all"
-          >
-            <X className="w-5 h-5" />
-          </button>
-        </div>
-      }
+      header={<ModalBar title="Select Your Engine & Platform" onClose={onClose} />}
       footer={
-        <div className="flex items-center justify-end gap-3 px-6 py-4 border-t border-slate-800 bg-slate-950">
-          <button
-            onClick={onClose}
-            className="px-4 py-2 text-xs font-semibold text-slate-400 hover:text-slate-200 transition-colors"
-          >
+        <div className="flex flex-wrap items-center justify-end gap-3 border-t border-black/15 px-5 py-3 sm:px-6">
+          <button onClick={onClose} className="btn btn-outline btn-sm">
             Cancel
           </button>
-          <button
-            onClick={handleSave}
-            id="confirm-vehicle-btn"
-            className="px-5 py-2.5 bg-red-600 hover:bg-red-500 text-white font-bold text-xs rounded-xl shadow-lg shadow-red-900/40 transition-all border border-red-500/40"
-          >
+          <button onClick={handleSave} id="confirm-vehicle-btn" className="btn btn-primary btn-sm">
             Confirm Platform Selection
           </button>
         </div>
@@ -135,160 +113,151 @@ export const PlatformSelectorModal: React.FC<PlatformSelectorModalProps> = ({
     >
       {/* The shell caps the panel height and scrolls this body, so no local
           max-h belongs here. */}
-      <div className="p-6 space-y-6">
-          {/* VIN Decoder Quick Option */}
-          <div className="p-4 rounded-xl bg-slate-950/60 border border-slate-800 space-y-2">
-            <div className="flex items-center justify-between">
-              <label className="text-xs font-semibold text-slate-300 flex items-center gap-1.5 uppercase tracking-wider">
-                <Search className="w-3.5 h-3.5 text-red-400" />
-                <span>VIN Decode (Tap-Selector Shortcut)</span>
-              </label>
-              <span className="text-[10px] text-slate-400">BMW WBA... or Infiniti JN1...</span>
-            </div>
-            <form onSubmit={handleVinLookup} className="flex gap-2">
-              <input
-                type="text"
-                value={vinInput}
-                onChange={(e) => setVinInput(e.target.value)}
-                placeholder="Enter VIN (e.g. WBA5R3G09M... or JN1CV7AP...)"
-                className="flex-1 bg-slate-900 border border-slate-750 rounded-lg px-3 py-2 text-xs text-white placeholder-slate-500 focus:outline-none focus:border-red-500 font-mono uppercase"
-              />
-              <button
-                type="submit"
-                className="px-4 py-2 bg-slate-800 hover:bg-slate-700 text-slate-200 font-semibold text-xs rounded-lg transition-all border border-slate-700"
-              >
-                Decode VIN
-              </button>
-            </form>
+      <div className="space-y-6 p-5 sm:p-6">
+        {/* VIN Decoder Quick Option */}
+        <div className="well space-y-2 p-4">
+          <div className="flex flex-wrap items-baseline justify-between gap-2">
+            <label htmlFor="vin-input" className="field-label mb-0 flex items-center gap-1.5">
+              <Search className="h-3.5 w-3.5 text-accent-deep" aria-hidden="true" />
+              <span>VIN Decode (Tap-Selector Shortcut)</span>
+            </label>
+            <span className="text-[14px] text-text-3">BMW WBA... or Infiniti JN1...</span>
+          </div>
+          <form onSubmit={handleVinLookup} className="flex flex-col gap-2 sm:flex-row">
+            <input
+              id="vin-input"
+              type="text"
+              value={vinInput}
+              onChange={(e) => setVinInput(e.target.value)}
+              placeholder="Enter VIN (e.g. WBA5R3G09M... or JN1CV7AP...)"
+              aria-describedby={vinError || vinWarning ? 'vin-feedback' : undefined}
+              className="field flex-1 uppercase"
+            />
+            <button type="submit" className="btn btn-secondary btn-sm">
+              Decode VIN
+            </button>
+          </form>
+          <div id="vin-feedback" aria-live="polite">
             {vinError && (
-              <p className="text-[11px] text-amber-400 flex items-center gap-1 mt-1">
-                <AlertCircle className="w-3 h-3" />
+              <p className="mt-1 flex items-start gap-1.5 text-[15px] font-semibold text-accent-deep">
+                <AlertCircle className="mt-0.5 h-4 w-4 shrink-0" aria-hidden="true" />
                 <span>{vinError}</span>
               </p>
             )}
-            {vinWarning && (
-              <p className="text-[11px] text-amber-400 mt-2 leading-relaxed">{vinWarning}</p>
-            )}
+            {vinWarning && <p className="mt-2 text-[15px] font-semibold text-text-2">{vinWarning}</p>}
           </div>
+        </div>
 
-          {/* Platform Step 1: Pick Platform Family */}
-          <div>
-            <label className="text-xs font-semibold text-slate-400 uppercase tracking-wider block mb-2">
-              1. Platform Family
-            </label>
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-              {PLATFORMS.map((plat) => {
-                const isSelected = selectedPlatform === plat.id;
-                return (
-                  <button
-                    key={plat.id}
-                    onClick={() => handlePlatformChange(plat.id)}
-                    className={`p-4 rounded-xl text-left border transition-all ${
-                      isSelected
-                        ? 'bg-red-950/30 border-red-500 text-white ring-1 ring-red-500/50'
-                        : 'bg-slate-950/40 border-slate-800 text-slate-400 hover:border-slate-700 hover:text-slate-200'
-                    }`}
-                  >
-                    <div className="flex items-center justify-between mb-1">
-                      <span className="font-mono font-bold text-sm text-slate-100">{plat.name}</span>
-                      {isSelected && <Check className="w-4 h-4 text-red-500" />}
-                    </div>
-                    <p className="text-xs text-slate-400 line-clamp-2">{plat.description}</p>
-                  </button>
-                );
-              })}
-            </div>
-          </div>
-
-          {/* Step 2: Engine Variant */}
-          <div>
-            <label className="text-xs font-semibold text-slate-400 uppercase tracking-wider block mb-2">
-              2. Engine Variant
-            </label>
-            <div className="space-y-2">
-              {currentPlatformObj.engines.map((eng) => {
-                const isSelected = selectedEngine === eng.id;
-                return (
-                  <button
-                    key={eng.id}
-                    onClick={() => {
-                      setSelectedEngine(eng.id);
-                      setSelectedChassis(eng.chassisList[0]);
-                      setSelectedTrim(eng.trims[0]);
-                    }}
-                    className={`w-full p-3.5 rounded-xl text-left border flex items-center justify-between transition-all ${
-                      isSelected
-                        ? 'bg-red-950/40 border-red-500 text-white'
-                        : 'bg-slate-950/40 border-slate-800 text-slate-300 hover:bg-slate-850'
-                    }`}
-                  >
-                    <div>
-                      <div className="font-bold text-sm text-slate-100">{eng.name}</div>
-                      <div className="text-xs text-slate-400 mt-0.5">
-                        Stock: <span className="text-red-400 font-mono font-bold">{eng.stockWhp} WHP</span> / <span className="text-slate-300 font-mono">{eng.stockWtq} WTQ</span> @ {eng.stockBoostPsi} PSI boost
-                      </div>
-                    </div>
-                    {isSelected && <Check className="w-4 h-4 text-red-500" />}
-                  </button>
-                );
-              })}
-            </div>
-          </div>
-
-          {/* Step 3: Chassis & Trim */}
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-            <div>
-              <label className="text-xs font-semibold text-slate-400 uppercase tracking-wider block mb-1.5">
-                Chassis
-              </label>
-              <select
-                value={selectedChassis}
-                onChange={(e) => setSelectedChassis(e.target.value)}
-                className="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2.5 text-xs text-white focus:outline-none focus:border-red-500 font-medium"
-              >
-                {currentEngineObj.chassisList.map((ch) => (
-                  <option key={ch} value={ch}>{ch}</option>
-                ))}
-              </select>
-            </div>
-
-            <div>
-              <label className="text-xs font-semibold text-slate-400 uppercase tracking-wider block mb-1.5">
-                Trim Level
-              </label>
-              <select
-                value={selectedTrim}
-                onChange={(e) => setSelectedTrim(e.target.value)}
-                className="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2.5 text-xs text-white focus:outline-none focus:border-red-500 font-medium"
-              >
-                {currentEngineObj.trims.map((tm) => (
-                  <option key={tm} value={tm}>{tm}</option>
-                ))}
-              </select>
-            </div>
-          </div>
-
-          {/* Step 4: Transmission */}
-          <div>
-            <label className="text-xs font-semibold text-slate-400 uppercase tracking-wider block mb-1.5">
-              Transmission
-            </label>
-            <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 text-xs">
-              {(['ZF8 Speed Auto', '6-Speed Manual', '7-Speed Auto', 'DCT'] as const).map((trans) => (
+        {/* Platform Step 1: Pick Platform Family */}
+        <fieldset>
+          <legend className="field-label">1. Platform Family</legend>
+          <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+            {PLATFORMS.map((plat) => {
+              const isSelected = selectedPlatform === plat.id;
+              return (
                 <button
-                  key={trans}
-                  onClick={() => setTransmission(trans)}
-                  className={`py-2 px-3 rounded-lg border font-medium text-center transition-all ${
-                    transmission === trans
-                      ? 'bg-red-950/60 border-red-500 text-white font-bold'
-                      : 'bg-slate-950 border-slate-800 text-slate-400 hover:text-slate-200'
-                  }`}
+                  type="button"
+                  key={plat.id}
+                  onClick={() => handlePlatformChange(plat.id)}
+                  aria-pressed={isSelected}
+                  className="toggle flex-col items-stretch p-4 text-left"
                 >
-                  {trans}
+                  <span className="flex items-start justify-between gap-2">
+                    <span className="font-bold">{plat.name}</span>
+                    {isSelected && <Check className="h-4 w-4 shrink-0 text-accent-bright" aria-hidden="true" />}
+                  </span>
+                  <span className={`line-clamp-2 text-[14px] font-normal ${isSelected ? 'text-dark-muted' : 'text-text-2'}`}>
+                    {plat.description}
+                  </span>
                 </button>
-              ))}
-            </div>
+              );
+            })}
           </div>
+        </fieldset>
+
+        {/* Step 2: Engine Variant */}
+        <fieldset>
+          <legend className="field-label">2. Engine Variant</legend>
+          <div className="space-y-2">
+            {currentPlatformObj.engines.map((eng) => {
+              const isSelected = selectedEngine === eng.id;
+              return (
+                <button
+                  type="button"
+                  key={eng.id}
+                  onClick={() => {
+                    setSelectedEngine(eng.id);
+                    setSelectedChassis(eng.chassisList[0]);
+                    setSelectedTrim(eng.trims[0]);
+                  }}
+                  aria-pressed={isSelected}
+                  className="toggle w-full justify-between p-3.5 text-left"
+                >
+                  <span>
+                    <span className="block font-bold">{eng.name}</span>
+                    <span className={`mt-0.5 block text-[14px] font-normal ${isSelected ? 'text-dark-muted' : 'text-text-2'}`}>
+                      Stock: <span className="font-bold">{eng.stockWhp} WHP</span> / {eng.stockWtq} WTQ @ {eng.stockBoostPsi} PSI boost
+                    </span>
+                  </span>
+                  {isSelected && <Check className="h-4 w-4 shrink-0 text-accent-bright" aria-hidden="true" />}
+                </button>
+              );
+            })}
+          </div>
+        </fieldset>
+
+        {/* Step 3: Chassis & Trim */}
+        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+          <div>
+            <label htmlFor="chassis-select" className="field-label">
+              Chassis
+            </label>
+            <select
+              id="chassis-select"
+              value={selectedChassis}
+              onChange={(e) => setSelectedChassis(e.target.value)}
+              className="field"
+            >
+              {currentEngineObj.chassisList.map((ch) => (
+                <option key={ch} value={ch}>{ch}</option>
+              ))}
+            </select>
+          </div>
+
+          <div>
+            <label htmlFor="trim-select" className="field-label">
+              Trim Level
+            </label>
+            <select
+              id="trim-select"
+              value={selectedTrim}
+              onChange={(e) => setSelectedTrim(e.target.value)}
+              className="field"
+            >
+              {currentEngineObj.trims.map((tm) => (
+                <option key={tm} value={tm}>{tm}</option>
+              ))}
+            </select>
+          </div>
+        </div>
+
+        {/* Step 4: Transmission */}
+        <fieldset>
+          <legend className="field-label">Transmission</legend>
+          <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
+            {(['ZF8 Speed Auto', '6-Speed Manual', '7-Speed Auto', 'DCT'] as const).map((trans) => (
+              <button
+                type="button"
+                key={trans}
+                onClick={() => setTransmission(trans)}
+                aria-pressed={transmission === trans}
+                className="toggle justify-center text-center text-[14px]"
+              >
+                {trans}
+              </button>
+            ))}
+          </div>
+        </fieldset>
       </div>
     </Modal>
   );

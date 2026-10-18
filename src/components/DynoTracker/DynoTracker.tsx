@@ -2,8 +2,24 @@ import React, { useState } from 'react';
 import { EngineId, VehicleSelection, UserDynoRun, DynoDataPoint } from '../../types';
 import { generateDynoCurveData } from '../../data/platforms';
 import { ResponsiveContainer, LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend } from 'recharts';
-import { Activity, Plus, Gauge, Calendar, Flame, Sliders, FileText, Check } from 'lucide-react';
+import { Plus, Calendar } from 'lucide-react';
 import { Modal } from '../ui/Modal';
+import { ModalBar } from '../billet/ModalBar';
+import { PageHeader } from '../billet/PageHeader';
+
+// Chart ink on the dark panel: greys plus the red, with anodized purple for
+// the boost curve and its axis. Every series also carries its own dash
+// pattern and the legend names it, so identity never rests on colour alone.
+// All marks clear 3:1 against the ink face.
+const CHART = {
+  stock: '#8E9399',
+  current: '#E4E7EA',
+  target: '#F2545B',
+  boost: '#9B6BFF',
+  grid: '#33373D',
+  axis: '#5E646B',
+  tick: '#AEB4BA',
+};
 
 interface DynoTrackerProps {
   vehicle: VehicleSelection;
@@ -85,124 +101,124 @@ export const DynoTracker: React.FC<DynoTrackerProps> = ({
   return (
     <div className="space-y-6">
       {/* Header */}
-      <div className="bg-slate-900 border border-slate-800 rounded-2xl p-6 shadow-xl flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
-        <div>
-          <div className="flex items-center gap-2">
-            <Activity className="w-6 h-6 text-red-500" />
-            <h2 className="text-xl font-bold font-mono text-white uppercase tracking-wider">
-              Interactive Dyno Graph Visualizer & Log
-            </h2>
-          </div>
-          <p className="text-xs text-slate-400 mt-1 max-w-xl">
-            Real-time overlay comparison of stock horsepower/torque curves against projected build target and logged real-world dyno runs.
-          </p>
-        </div>
-
-        <button
-          onClick={() => setShowLogModal(true)}
-          id="log-dyno-run-btn"
-          className="px-4 py-2.5 bg-red-600 hover:bg-red-500 text-white font-bold text-xs rounded-xl shadow-lg shadow-red-900/30 flex items-center gap-2 transition-all border border-red-500/40 whitespace-nowrap"
-        >
-          <Plus className="w-4 h-4" />
-          <span>Log Real Dyno Run</span>
-        </button>
-      </div>
+      <PageHeader
+        eyebrow="Dyno visualizer"
+        title="Interactive Dyno Graph Visualizer & Log"
+        description="Real-time overlay comparison of stock horsepower/torque curves against projected build target and logged real-world dyno runs."
+        actions={
+          <button
+            onClick={() => setShowLogModal(true)}
+            id="log-dyno-run-btn"
+            className="btn btn-primary w-full whitespace-nowrap md:w-auto"
+          >
+            <Plus className="h-4 w-4" aria-hidden="true" />
+            <span>Log Real Dyno Run</span>
+          </button>
+        }
+      />
 
       {/* Main Chart Card */}
-      <div className="bg-slate-900 border border-slate-800 rounded-2xl p-6 space-y-4 shadow-2xl">
-        <div className="flex items-center justify-between border-b border-slate-800 pb-3 flex-wrap gap-2">
-          <div className="flex items-center gap-2 font-mono text-xs text-slate-300">
-            <span className="font-bold text-red-400">GRAPH OVERLAY:</span>
-            <span>{vehicle.trim} ({vehicle.chassis})</span>
-          </div>
+      <section className="panel-dark space-y-4 p-5 sm:p-6" aria-labelledby="dyno-chart-title">
+        <div className="flex flex-col gap-3 border-b border-dark-border pb-4 lg:flex-row lg:items-center lg:justify-between">
+          <h2 id="dyno-chart-title" className="flex flex-wrap items-baseline gap-x-3">
+            <span className="label-ui text-accent-bright">Graph overlay:</span>
+            <span className="font-semibold text-on-dark">{vehicle.trim} ({vehicle.chassis})</span>
+          </h2>
 
-          <div className="flex items-center gap-4 text-xs font-mono">
-            <div className="flex items-center gap-1.5">
-              <span className="w-3 h-3 rounded-full bg-slate-500 inline-block" />
-              <span className="text-slate-400">Stock ({stockWhp} WHP)</span>
-            </div>
-            <div className="flex items-center gap-1.5">
-              <span className="w-3 h-3 rounded-full bg-emerald-400 inline-block" />
-              <span className="text-slate-300">Current Build ({projectedWhp} WHP)</span>
-            </div>
-            <div className="flex items-center gap-1.5">
-              <span className="w-3 h-3 rounded-full bg-red-500 inline-block" />
-              <span className="text-slate-100 font-bold">Goal Target ({goalWhp} WHP)</span>
-            </div>
-          </div>
+          <ul className="flex flex-wrap items-center gap-x-5 gap-y-1 text-[14px]">
+            <li className="flex items-center gap-2 text-dark-muted">
+              <span aria-hidden="true" className="inline-block w-5 border-t-2 border-dashed" style={{ borderColor: CHART.stock }} />
+              Stock ({stockWhp} WHP)
+            </li>
+            <li className="flex items-center gap-2 text-on-dark">
+              <span aria-hidden="true" className="inline-block w-5 border-t-2" style={{ borderColor: CHART.current }} />
+              Current Build ({projectedWhp} WHP)
+            </li>
+            <li className="flex items-center gap-2 font-bold text-on-dark">
+              <span aria-hidden="true" className="inline-block w-5 border-t-[3px]" style={{ borderColor: CHART.target }} />
+              Goal Target ({goalWhp} WHP)
+            </li>
+          </ul>
         </div>
 
         {/* Recharts Line Chart */}
-        <div className="h-96 w-full pt-2">
+        <div className="h-80 w-full pt-2 sm:h-96">
           <ResponsiveContainer width="100%" height="100%">
-            <LineChart data={dynoCurveData} margin={{ top: 10, right: 30, left: 0, bottom: 0 }}>
-              <CartesianGrid strokeDasharray="3 3" stroke="#1e293b" />
-              <XAxis dataKey="rpm" stroke="#64748b" tick={{ fill: '#94a3b8', fontSize: 11 }} />
-              <YAxis yAxisId="power" stroke="#94a3b8" tick={{ fill: '#94a3b8', fontSize: 11 }} domain={[0, 'dataMax + 60']} />
-              <YAxis yAxisId="boost" orientation="right" stroke="#38bdf8" tick={{ fill: '#38bdf8', fontSize: 11 }} domain={[0, 30]} />
+            <LineChart data={dynoCurveData} margin={{ top: 10, right: 8, left: -8, bottom: 0 }}>
+              <CartesianGrid strokeDasharray="3 3" stroke={CHART.grid} />
+              <XAxis dataKey="rpm" stroke={CHART.axis} tick={{ fill: CHART.tick, fontSize: 12 }} />
+              <YAxis yAxisId="power" stroke={CHART.axis} tick={{ fill: CHART.tick, fontSize: 12 }} domain={[0, 'dataMax + 60']} />
+              <YAxis yAxisId="boost" orientation="right" stroke={CHART.boost} tick={{ fill: CHART.boost, fontSize: 12 }} domain={[0, 30]} />
               <Tooltip
-                contentStyle={{ backgroundColor: '#090d16', borderColor: '#334155', borderRadius: '12px', fontSize: '12px', color: '#f8fafc' }}
+                contentStyle={{
+                  backgroundColor: '#1E2125',
+                  borderColor: '#33373D',
+                  borderRadius: '3px',
+                  fontSize: '14px',
+                  fontFamily: 'Barlow, sans-serif',
+                  color: '#E4E7EA',
+                }}
+                labelStyle={{ color: '#AEB4BA' }}
+                itemStyle={{ color: '#E4E7EA' }}
               />
-              <Legend wrapperStyle={{ fontSize: '11px', paddingTop: '10px' }} />
+              <Legend wrapperStyle={{ fontSize: '13px', paddingTop: '10px', color: '#AEB4BA' }} />
 
               {/* Stock Lines */}
-              <Line yAxisId="power" type="monotone" dataKey="hpStock" name="Stock WHP" stroke="#64748b" strokeWidth={2} strokeDasharray="5 5" dot={false} />
-              <Line yAxisId="power" type="monotone" dataKey="tqStock" name="Stock WTQ" stroke="#475569" strokeWidth={2} strokeDasharray="3 3" dot={false} />
+              <Line yAxisId="power" type="monotone" dataKey="hpStock" name="Stock WHP" stroke={CHART.stock} strokeWidth={2} strokeDasharray="6 4" dot={false} />
+              <Line yAxisId="power" type="monotone" dataKey="tqStock" name="Stock WTQ" stroke={CHART.stock} strokeWidth={2} strokeDasharray="2 3" dot={false} />
 
               {/* Current Build Lines */}
-              <Line yAxisId="power" type="monotone" dataKey="hpCurrent" name="Current Build WHP" stroke="#10b981" strokeWidth={3} dot={false} />
-              <Line yAxisId="power" type="monotone" dataKey="tqCurrent" name="Current Build WTQ" stroke="#34d399" strokeWidth={2} strokeDasharray="2 2" dot={false} />
+              <Line yAxisId="power" type="monotone" dataKey="hpCurrent" name="Current Build WHP" stroke={CHART.current} strokeWidth={2.5} dot={false} />
+              <Line yAxisId="power" type="monotone" dataKey="tqCurrent" name="Current Build WTQ" stroke={CHART.current} strokeWidth={2} strokeDasharray="4 3" dot={false} />
 
               {/* Target Goal Lines */}
-              <Line yAxisId="power" type="monotone" dataKey="hpTarget" name="Goal Target WHP" stroke="#ef4444" strokeWidth={3} dot={false} />
-              <Line yAxisId="power" type="monotone" dataKey="tqTarget" name="Goal Target WTQ" stroke="#f87171" strokeWidth={2} strokeDasharray="2 2" dot={false} />
+              <Line yAxisId="power" type="monotone" dataKey="hpTarget" name="Goal Target WHP" stroke={CHART.target} strokeWidth={3} dot={false} />
+              <Line yAxisId="power" type="monotone" dataKey="tqTarget" name="Goal Target WTQ" stroke={CHART.target} strokeWidth={2} strokeDasharray="4 3" dot={false} />
 
               {/* Boost PSI Curve */}
-              <Line yAxisId="boost" type="monotone" dataKey="boostPsiTarget" name="Target Boost (PSI)" stroke="#38bdf8" strokeWidth={2} dot={false} />
+              <Line yAxisId="boost" type="monotone" dataKey="boostPsiTarget" name="Target Boost (PSI)" stroke={CHART.boost} strokeWidth={2} strokeDasharray="1 4" strokeLinecap="round" dot={false} />
             </LineChart>
           </ResponsiveContainer>
         </div>
-      </div>
+      </section>
 
       {/* Dyno Logs History Section */}
-      <div className="bg-slate-900 border border-slate-800 rounded-2xl p-6 space-y-4 shadow-xl">
-        <h3 className="text-sm font-bold font-mono text-slate-200 uppercase tracking-wide flex items-center gap-2">
-          <Calendar className="w-4 h-4 text-red-500" />
+      <section className="panel-dark space-y-4 p-5 sm:p-6" aria-labelledby="dyno-log-title">
+        <h2 id="dyno-log-title" className="h-section flex items-center gap-2">
+          <Calendar className="h-4 w-4 text-dark-muted" aria-hidden="true" />
           <span>Logged Chassis Dyno Pulls</span>
-        </h3>
+        </h2>
 
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
           {dynoRuns.map(run => (
-            <div key={run.id} className="p-4 rounded-xl bg-slate-950 border border-slate-800 space-y-2 font-mono text-xs">
-              <div className="flex items-center justify-between border-b border-slate-800 pb-2">
-                <span className="font-bold text-slate-100">{run.title}</span>
-                <span className="text-[10px] text-slate-500">{run.date}</span>
+            <article key={run.id} className="well-dark space-y-3 p-4">
+              <div className="flex flex-wrap items-baseline justify-between gap-2 border-b border-dark-border pb-2">
+                <h3 className="font-bold text-on-dark">{run.title}</h3>
+                <span className="label-ui text-dark-muted">{run.date}</span>
               </div>
 
-              <div className="grid grid-cols-3 gap-2 text-center pt-1">
-                <div className="bg-slate-900 p-2 rounded-lg">
-                  <span className="text-[10px] text-slate-400 block">Peak WHP</span>
-                  <span className="text-red-400 font-bold text-sm">{run.peakWhp}</span>
+              <dl className="grid grid-cols-3 gap-2 text-center">
+                <div>
+                  <dt className="label-ui text-dark-muted">Peak WHP</dt>
+                  <dd className="num mt-1 text-[18px] text-on-dark">{run.peakWhp}</dd>
                 </div>
-                <div className="bg-slate-900 p-2 rounded-lg">
-                  <span className="text-[10px] text-slate-400 block">Peak WTQ</span>
-                  <span className="text-slate-200 font-bold text-sm">{run.peakWtq}</span>
+                <div>
+                  <dt className="label-ui text-dark-muted">Peak WTQ</dt>
+                  <dd className="num mt-1 text-[18px] text-on-dark">{run.peakWtq}</dd>
                 </div>
-                <div className="bg-slate-900 p-2 rounded-lg">
-                  <span className="text-[10px] text-slate-400 block">Dyno / Fuel</span>
-                  <span className="text-amber-400 font-bold text-[11px]">{run.dynoType} / {run.fuelType}</span>
+                <div>
+                  <dt className="label-ui text-dark-muted">Dyno / Fuel</dt>
+                  <dd className="mt-1 text-[14px] font-semibold text-on-dark">{run.dynoType} / {run.fuelType}</dd>
                 </div>
-              </div>
+              </dl>
 
               {run.notes && (
-                <p className="text-[11px] text-slate-400 font-sans italic pt-1">
-                  "{run.notes}"
-                </p>
+                <p className="text-[15px] italic text-dark-muted">"{run.notes}"</p>
               )}
-            </div>
+            </article>
           ))}
         </div>
-      </div>
+      </section>
 
       {/* Log Run Modal */}
       {showLogModal && (
@@ -210,102 +226,94 @@ export const DynoTracker: React.FC<DynoTrackerProps> = ({
           isOpen={showLogModal}
           onClose={() => setShowLogModal(false)}
           maxWidth="max-w-lg"
-          backdropClassName="bg-slate-950/80"
-          bodyClassName="p-6 space-y-4"
+          header={<ModalBar title="Log Chassis Dyno Session" onClose={() => setShowLogModal(false)} />}
+          bodyClassName="p-5 sm:p-6"
         >
-          <div className="space-y-4">
-            <h3 className="font-mono font-bold text-base uppercase text-white flex items-center gap-2">
-              <Activity className="w-5 h-5 text-red-500" />
-              <span>Log Chassis Dyno Session</span>
-            </h3>
+          <form onSubmit={handleAddRun} className="space-y-4">
+            <div>
+              <label htmlFor="dyno-title" className="field-label">Session Title</label>
+              <input
+                id="dyno-title"
+                type="text"
+                required
+                value={runTitle}
+                onChange={(e) => setRunTitle(e.target.value)}
+                placeholder="e.g., Stage 2 MHD E30 Custom Tune Pull"
+                className="field"
+              />
+            </div>
 
-            <form onSubmit={handleAddRun} className="space-y-4 text-xs">
+            <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
               <div>
-                <label className="block text-slate-400 font-semibold mb-1">Session Title</label>
+                <label htmlFor="dyno-whp" className="field-label">Measured WHP</label>
                 <input
-                  type="text"
-                  required
-                  value={runTitle}
-                  onChange={(e) => setRunTitle(e.target.value)}
-                  placeholder="e.g., Stage 2 MHD E30 Custom Tune Pull"
-                  className="w-full bg-slate-950 border border-slate-800 rounded-lg p-2.5 text-white focus:outline-none focus:border-red-500"
+                  id="dyno-whp"
+                  type="number"
+                  value={peakWhp}
+                  onChange={(e) => setPeakWhp(Number(e.target.value))}
+                  className="field"
                 />
               </div>
-
-              <div className="grid grid-cols-2 gap-3 font-mono">
-                <div>
-                  <label className="block text-slate-400 font-semibold mb-1">Measured WHP</label>
-                  <input
-                    type="number"
-                    value={peakWhp}
-                    onChange={(e) => setPeakWhp(Number(e.target.value))}
-                    className="w-full bg-slate-950 border border-slate-800 rounded-lg p-2.5 text-white focus:outline-none focus:border-red-500"
-                  />
-                </div>
-                <div>
-                  <label className="block text-slate-400 font-semibold mb-1">Measured WTQ</label>
-                  <input
-                    type="number"
-                    value={peakWtq}
-                    onChange={(e) => setPeakWtq(Number(e.target.value))}
-                    className="w-full bg-slate-950 border border-slate-800 rounded-lg p-2.5 text-white focus:outline-none focus:border-red-500"
-                  />
-                </div>
-              </div>
-
-              <div className="grid grid-cols-2 gap-3">
-                <div>
-                  <label className="block text-slate-400 font-semibold mb-1">Dyno Brand</label>
-                  <select
-                    value={dynoType}
-                    onChange={(e) => setDynoType(e.target.value as any)}
-                    className="w-full bg-slate-950 border border-slate-800 rounded-lg p-2.5 text-white focus:outline-none focus:border-red-500"
-                  >
-                    <option value="Dynojet">Dynojet</option>
-                    <option value="Mustang Dyno">Mustang Dyno</option>
-                    <option value="Mainline">Mainline</option>
-                    <option value="Virtual Dyno">Virtual Dyno</option>
-                  </select>
-                </div>
-                <div>
-                  <label className="block text-slate-400 font-semibold mb-1">Fuel Octane / Blend</label>
-                  <input
-                    type="text"
-                    value={fuelType}
-                    onChange={(e) => setFuelType(e.target.value)}
-                    placeholder="93 Oct, E30, E85"
-                    className="w-full bg-slate-950 border border-slate-800 rounded-lg p-2.5 text-white focus:outline-none focus:border-red-500"
-                  />
-                </div>
-              </div>
-
               <div>
-                <label className="block text-slate-400 font-semibold mb-1">Session Notes & Ambient Temp</label>
-                <textarea
-                  value={notes}
-                  onChange={(e) => setNotes(e.target.value)}
-                  placeholder="Ambient temperature, boost psi, tuner feedback..."
-                  className="w-full bg-slate-950 border border-slate-800 rounded-lg p-2.5 text-white focus:outline-none focus:border-red-500 h-20"
+                <label htmlFor="dyno-wtq" className="field-label">Measured WTQ</label>
+                <input
+                  id="dyno-wtq"
+                  type="number"
+                  value={peakWtq}
+                  onChange={(e) => setPeakWtq(Number(e.target.value))}
+                  className="field"
                 />
               </div>
+            </div>
 
-              <div className="flex items-center justify-end gap-3 pt-2">
-                <button
-                  type="button"
-                  onClick={() => setShowLogModal(false)}
-                  className="px-4 py-2 text-slate-400 hover:text-white"
+            <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+              <div>
+                <label htmlFor="dyno-brand" className="field-label">Dyno Brand</label>
+                <select
+                  id="dyno-brand"
+                  value={dynoType}
+                  onChange={(e) => setDynoType(e.target.value as any)}
+                  className="field"
                 >
-                  Cancel
-                </button>
-                <button
-                  type="submit"
-                  className="px-5 py-2 bg-red-600 hover:bg-red-500 text-white font-bold rounded-xl shadow-lg"
-                >
-                  Save Dyno Log
-                </button>
+                  <option value="Dynojet">Dynojet</option>
+                  <option value="Mustang Dyno">Mustang Dyno</option>
+                  <option value="Mainline">Mainline</option>
+                  <option value="Virtual Dyno">Virtual Dyno</option>
+                </select>
               </div>
-            </form>
-          </div>
+              <div>
+                <label htmlFor="dyno-fuel" className="field-label">Fuel Octane / Blend</label>
+                <input
+                  id="dyno-fuel"
+                  type="text"
+                  value={fuelType}
+                  onChange={(e) => setFuelType(e.target.value)}
+                  placeholder="93 Oct, E30, E85"
+                  className="field"
+                />
+              </div>
+            </div>
+
+            <div>
+              <label htmlFor="dyno-notes" className="field-label">Session Notes & Ambient Temp</label>
+              <textarea
+                id="dyno-notes"
+                value={notes}
+                onChange={(e) => setNotes(e.target.value)}
+                placeholder="Ambient temperature, boost psi, tuner feedback..."
+                className="field h-24"
+              />
+            </div>
+
+            <div className="flex flex-wrap items-center justify-end gap-3 pt-2">
+              <button type="button" onClick={() => setShowLogModal(false)} className="btn btn-outline btn-sm">
+                Cancel
+              </button>
+              <button type="submit" className="btn btn-primary btn-sm">
+                Save Dyno Log
+              </button>
+            </div>
+          </form>
         </Modal>
       )}
     </div>
