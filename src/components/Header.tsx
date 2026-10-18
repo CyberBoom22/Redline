@@ -91,7 +91,7 @@ export const Header: React.FC<HeaderProps> = ({
                     className={`flex min-h-[48px] items-center whitespace-nowrap border-b-2 px-3 text-[14px] font-semibold uppercase tracking-[1.5px] transition-colors sm:px-4 ${
                       isActive
                         ? 'border-accent text-on-dark'
-                        : 'border-transparent text-dark-muted hover:text-on-dark'
+                        : 'border-transparent text-dark-muted hover:border-anodize-bright hover:text-on-dark'
                     }`}
                   >
                     {tab.label}

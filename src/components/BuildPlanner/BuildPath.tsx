@@ -12,8 +12,8 @@ interface BuildPathProps {
   goalWhp: number;
 }
 
-// Tier label per part. Neutral outlined chips: the palette has no colour per
-// price tier, and the label already says which tier it is.
+// Tier label per part. Outlined chips, neutral except Premium, which keeps the
+// purple it always had; the label still says which tier it is.
 const TIER_LABELS: Record<PartTier, string> = {
   cheap: 'Budget',
   mid: 'Mid-Tier',
@@ -101,7 +101,7 @@ export const BuildPath: React.FC<BuildPathProps> = ({
                           <div className="min-w-0">
                             <div className="flex flex-wrap items-center gap-2">
                               <span className="font-semibold text-on-dark">{part.name}</span>
-                              <span className="chip text-dark-muted">{TIER_LABELS[part.tier]}</span>
+                              <span className={`chip ${part.tier === 'expensive' ? 'text-anodize-bright' : 'text-dark-muted'}`}>{TIER_LABELS[part.tier]}</span>
                               {part.isSupportingMod && (
                                 <span className="status-required text-[13px]">Required supporting mod</span>
                               )}

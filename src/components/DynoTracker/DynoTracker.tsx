@@ -7,15 +7,15 @@ import { Modal } from '../ui/Modal';
 import { ModalBar } from '../billet/ModalBar';
 import { PageHeader } from '../billet/PageHeader';
 
-// Chart ink on the dark panel. The brand palette is deliberately achromatic
-// plus red, so every series also carries its own dash pattern and the legend
-// names it — identity never rests on colour alone. All marks clear 3:1
-// against the ink face.
+// Chart ink on the dark panel: greys plus the red, with anodized purple for
+// the boost curve and its axis. Every series also carries its own dash
+// pattern and the legend names it, so identity never rests on colour alone.
+// All marks clear 3:1 against the ink face.
 const CHART = {
   stock: '#8E9399',
   current: '#E4E7EA',
   target: '#F2545B',
-  boost: '#C9CDD1',
+  boost: '#9B6BFF',
   grid: '#33373D',
   axis: '#5E646B',
   tick: '#AEB4BA',
@@ -148,7 +148,7 @@ export const DynoTracker: React.FC<DynoTrackerProps> = ({
               <CartesianGrid strokeDasharray="3 3" stroke={CHART.grid} />
               <XAxis dataKey="rpm" stroke={CHART.axis} tick={{ fill: CHART.tick, fontSize: 12 }} />
               <YAxis yAxisId="power" stroke={CHART.axis} tick={{ fill: CHART.tick, fontSize: 12 }} domain={[0, 'dataMax + 60']} />
-              <YAxis yAxisId="boost" orientation="right" stroke={CHART.axis} tick={{ fill: CHART.tick, fontSize: 12 }} domain={[0, 30]} />
+              <YAxis yAxisId="boost" orientation="right" stroke={CHART.boost} tick={{ fill: CHART.boost, fontSize: 12 }} domain={[0, 30]} />
               <Tooltip
                 contentStyle={{
                   backgroundColor: '#1E2125',

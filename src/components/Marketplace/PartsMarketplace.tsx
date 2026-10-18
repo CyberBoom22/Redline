@@ -132,7 +132,7 @@ export const PartsMarketplace: React.FC<PartsMarketplaceProps> = ({
                     <div className="min-w-0">
                       <div className="flex flex-wrap items-center gap-2">
                         <span className="label-ui text-accent-bright">{part.brand}</span>
-                        <span className="chip text-dark-muted">{tierBadge}</span>
+                        <span className={`chip ${part.tier === 'expensive' ? 'text-anodize-bright' : 'text-dark-muted'}`}>{tierBadge}</span>
                       </div>
                       <h2 className="mt-1 text-[18px] font-bold leading-snug text-on-dark">{part.name}</h2>
                     </div>
