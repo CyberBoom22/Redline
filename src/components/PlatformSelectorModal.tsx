@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { VehicleSelection, PlatformId, EngineId } from '../types';
-import { PLATFORMS } from '../data/platforms';
+import { PLATFORMS, TRANSMISSIONS } from '../data/platforms';
 import { normalizeVin, validateVin } from '../lib/vin';
 import { Check, Search, AlertCircle } from 'lucide-react';
 import { Modal } from './ui/Modal';
@@ -245,7 +245,7 @@ export const PlatformSelectorModal: React.FC<PlatformSelectorModalProps> = ({
         <fieldset>
           <legend className="field-label">Transmission</legend>
           <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
-            {(['ZF8 Speed Auto', '6-Speed Manual', '7-Speed Auto', 'DCT'] as const).map((trans) => (
+            {TRANSMISSIONS.map((trans) => (
               <button
                 type="button"
                 key={trans}
